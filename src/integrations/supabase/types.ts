@@ -14,16 +14,515 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      consumables: {
+        Row: {
+          authorized_by: string | null
+          balance: number | null
+          created_at: string
+          id: string
+          issued_to: string | null
+          laboratory_id: string | null
+          last_updated: string
+          name: string
+          quantity_issued: number
+          quantity_received: number
+          technician_id: string | null
+          unit: string
+        }
+        Insert: {
+          authorized_by?: string | null
+          balance?: number | null
+          created_at?: string
+          id?: string
+          issued_to?: string | null
+          laboratory_id?: string | null
+          last_updated?: string
+          name: string
+          quantity_issued?: number
+          quantity_received?: number
+          technician_id?: string | null
+          unit?: string
+        }
+        Update: {
+          authorized_by?: string | null
+          balance?: number | null
+          created_at?: string
+          id?: string
+          issued_to?: string | null
+          laboratory_id?: string | null
+          last_updated?: string
+          name?: string
+          quantity_issued?: number
+          quantity_received?: number
+          technician_id?: string | null
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumables_laboratory_id_fkey"
+            columns: ["laboratory_id"]
+            isOneToOne: false
+            referencedRelation: "laboratories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departments: {
+        Row: {
+          abbreviation: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          abbreviation?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          abbreviation?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      equipment: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          installation_date: string | null
+          laboratory_id: string | null
+          last_calibration: string | null
+          model: string | null
+          name: string
+          next_calibration: string | null
+          remarks: string | null
+          serial_number: string | null
+          status: Database["public"]["Enums"]["equipment_status"]
+          technician_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          installation_date?: string | null
+          laboratory_id?: string | null
+          last_calibration?: string | null
+          model?: string | null
+          name: string
+          next_calibration?: string | null
+          remarks?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["equipment_status"]
+          technician_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          installation_date?: string | null
+          laboratory_id?: string | null
+          last_calibration?: string | null
+          model?: string | null
+          name?: string
+          next_calibration?: string | null
+          remarks?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["equipment_status"]
+          technician_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_laboratory_id_fkey"
+            columns: ["laboratory_id"]
+            isOneToOne: false
+            referencedRelation: "laboratories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lab_sessions: {
+        Row: {
+          activity_type: string
+          course_name: string
+          created_at: string
+          created_by: string | null
+          date: string
+          department_id: string | null
+          end_time: string | null
+          id: string
+          instructor_confirmed: boolean
+          instructor_id: string | null
+          laboratory_id: string | null
+          number_of_users: number
+          remarks: string | null
+          start_time: string
+          technician_id: string | null
+        }
+        Insert: {
+          activity_type?: string
+          course_name: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          department_id?: string | null
+          end_time?: string | null
+          id?: string
+          instructor_confirmed?: boolean
+          instructor_id?: string | null
+          laboratory_id?: string | null
+          number_of_users?: number
+          remarks?: string | null
+          start_time: string
+          technician_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          course_name?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          department_id?: string | null
+          end_time?: string | null
+          id?: string
+          instructor_confirmed?: boolean
+          instructor_id?: string | null
+          laboratory_id?: string | null
+          number_of_users?: number
+          remarks?: string | null
+          start_time?: string
+          technician_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_sessions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_sessions_laboratory_id_fkey"
+            columns: ["laboratory_id"]
+            isOneToOne: false
+            referencedRelation: "laboratories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      laboratories: {
+        Row: {
+          capacity: number | null
+          created_at: string
+          department_id: string | null
+          id: string
+          location: string | null
+          name: string
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          location?: string | null
+          name: string
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "laboratories_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_logs: {
+        Row: {
+          action_taken: string | null
+          created_at: string
+          equipment_id: string
+          id: string
+          maintenance_date: string
+          maintenance_type: Database["public"]["Enums"]["maintenance_type"]
+          problem_reported: string | null
+          remarks: string | null
+          status: Database["public"]["Enums"]["maintenance_status"]
+          supervisor_approved: boolean
+          supervisor_id: string | null
+          technician_id: string | null
+        }
+        Insert: {
+          action_taken?: string | null
+          created_at?: string
+          equipment_id: string
+          id?: string
+          maintenance_date?: string
+          maintenance_type?: Database["public"]["Enums"]["maintenance_type"]
+          problem_reported?: string | null
+          remarks?: string | null
+          status?: Database["public"]["Enums"]["maintenance_status"]
+          supervisor_approved?: boolean
+          supervisor_id?: string | null
+          technician_id?: string | null
+        }
+        Update: {
+          action_taken?: string | null
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          maintenance_date?: string
+          maintenance_type?: Database["public"]["Enums"]["maintenance_type"]
+          problem_reported?: string | null
+          remarks?: string | null
+          status?: Database["public"]["Enums"]["maintenance_status"]
+          supervisor_approved?: boolean
+          supervisor_id?: string | null
+          technician_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_logs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          email: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          email?: string | null
+          full_name?: string
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      safety_inspections: {
+        Row: {
+          corrective_action: string | null
+          created_at: string
+          electrical_safety: boolean
+          emergency_exit: boolean
+          fire_safety: boolean
+          follow_up_date: string | null
+          hazards_identified: string | null
+          id: string
+          inspection_date: string
+          inspector_id: string | null
+          laboratory_id: string | null
+          ppe_status: boolean
+        }
+        Insert: {
+          corrective_action?: string | null
+          created_at?: string
+          electrical_safety?: boolean
+          emergency_exit?: boolean
+          fire_safety?: boolean
+          follow_up_date?: string | null
+          hazards_identified?: string | null
+          id?: string
+          inspection_date?: string
+          inspector_id?: string | null
+          laboratory_id?: string | null
+          ppe_status?: boolean
+        }
+        Update: {
+          corrective_action?: string | null
+          created_at?: string
+          electrical_safety?: boolean
+          emergency_exit?: boolean
+          fire_safety?: boolean
+          follow_up_date?: string | null
+          hazards_identified?: string | null
+          id?: string
+          inspection_date?: string
+          inspector_id?: string | null
+          laboratory_id?: string | null
+          ppe_status?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_inspections_laboratory_id_fkey"
+            columns: ["laboratory_id"]
+            isOneToOne: false
+            referencedRelation: "laboratories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technician_activities: {
+        Row: {
+          activity_description: string
+          course_supported: string | null
+          created_at: string
+          date: string
+          end_time: string | null
+          id: string
+          laboratory_id: string | null
+          start_time: string
+          supervisor_id: string | null
+          supervisor_verified: boolean
+          technician_id: string
+        }
+        Insert: {
+          activity_description: string
+          course_supported?: string | null
+          created_at?: string
+          date?: string
+          end_time?: string | null
+          id?: string
+          laboratory_id?: string | null
+          start_time: string
+          supervisor_id?: string | null
+          supervisor_verified?: boolean
+          technician_id: string
+        }
+        Update: {
+          activity_description?: string
+          course_supported?: string | null
+          created_at?: string
+          date?: string
+          end_time?: string | null
+          id?: string
+          laboratory_id?: string | null
+          start_time?: string
+          supervisor_id?: string | null
+          supervisor_verified?: boolean
+          technician_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_activities_laboratory_id_fkey"
+            columns: ["laboratory_id"]
+            isOneToOne: false
+            referencedRelation: "laboratories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "supervisor" | "technician" | "instructor" | "student"
+      equipment_status:
+        | "operational"
+        | "under_maintenance"
+        | "out_of_service"
+        | "decommissioned"
+      maintenance_status: "pending" | "in_progress" | "completed" | "cancelled"
+      maintenance_type:
+        | "preventive"
+        | "corrective"
+        | "calibration"
+        | "emergency"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +649,21 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "supervisor", "technician", "instructor", "student"],
+      equipment_status: [
+        "operational",
+        "under_maintenance",
+        "out_of_service",
+        "decommissioned",
+      ],
+      maintenance_status: ["pending", "in_progress", "completed", "cancelled"],
+      maintenance_type: [
+        "preventive",
+        "corrective",
+        "calibration",
+        "emergency",
+      ],
+    },
   },
 } as const
