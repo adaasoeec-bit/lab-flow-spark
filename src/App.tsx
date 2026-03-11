@@ -15,15 +15,24 @@ import TechnicianActivities from "@/pages/TechnicianActivities";
 import Reports from "@/pages/Reports";
 import UserManagement from "@/pages/UserManagement";
 import SystemSettings from "@/pages/SystemSettings";
+import CollegesDepartments from "@/pages/CollegesDepartments";
+import Profile from "@/pages/Profile";
 import Auth from "@/pages/Auth";
+import ChangePassword from "@/pages/ChangePassword";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+  const { session, loading, passwordChangeRequired } = useAuth();
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
   if (!session) return <Navigate to="/auth" replace />;
+  if (passwordChangeRequired) return <Navigate to="/change-password" replace />;
   return <>{children}</>;
 }
 
@@ -31,6 +40,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/change-password" element={<ChangePassword />} />
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/sessions" element={<LabSessions />} />
@@ -41,6 +51,8 @@ function AppRoutes() {
         <Route path="/activities" element={<TechnicianActivities />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/users" element={<UserManagement />} />
+        <Route path="/colleges" element={<CollegesDepartments />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<SystemSettings />} />
       </Route>
       <Route path="*" element={<NotFound />} />

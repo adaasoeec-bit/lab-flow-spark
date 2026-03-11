@@ -47,6 +47,27 @@ export type Database = {
         }
         Relationships: []
       }
+      colleges: {
+        Row: {
+          abbreviation: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          abbreviation?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          abbreviation?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       consumables: {
         Row: {
           authorized_by: string | null
@@ -103,23 +124,34 @@ export type Database = {
       departments: {
         Row: {
           abbreviation: string | null
+          college_id: string | null
           created_at: string
           id: string
           name: string
         }
         Insert: {
           abbreviation?: string | null
+          college_id?: string | null
           created_at?: string
           id?: string
           name: string
         }
         Update: {
           abbreviation?: string | null
+          college_id?: string | null
           created_at?: string
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "departments_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       equipment: {
         Row: {
@@ -336,29 +368,35 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           department_id: string | null
           email: string | null
           full_name: string
           id: string
+          password_change_required: boolean
           phone: string | null
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           department_id?: string | null
           email?: string | null
           full_name?: string
           id: string
+          password_change_required?: boolean
           phone?: string | null
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           department_id?: string | null
           email?: string | null
           full_name?: string
           id?: string
+          password_change_required?: boolean
           phone?: string | null
           updated_at?: string
         }
@@ -498,6 +536,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_data: {
+        Args: { _dept_id: string; _user_id: string }
+        Returns: boolean
+      }
+      equipment_department: { Args: { _equip_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -509,9 +552,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      lab_department: { Args: { _lab_id: string }; Returns: string }
+      mark_password_changed: { Args: never; Returns: undefined }
+      user_college_id: { Args: { _user_id: string }; Returns: string }
+      user_department_id: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "supervisor" | "technician" | "instructor" | "student"
+      app_role:
+        | "admin"
+        | "supervisor"
+        | "technician"
+        | "instructor"
+        | "student"
+        | "avd"
+        | "department_head"
+        | "ara"
+        | "management"
       equipment_status:
         | "operational"
         | "under_maintenance"
@@ -650,7 +706,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "supervisor", "technician", "instructor", "student"],
+      app_role: [
+        "admin",
+        "supervisor",
+        "technician",
+        "instructor",
+        "student",
+        "avd",
+        "department_head",
+        "ara",
+        "management",
+      ],
       equipment_status: [
         "operational",
         "under_maintenance",
