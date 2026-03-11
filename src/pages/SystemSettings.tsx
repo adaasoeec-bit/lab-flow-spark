@@ -1,8 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDepartments, useLaboratories } from "@/hooks/useSupabaseQuery";
 
 export default function SystemSettings() {
+  const { data: departments } = useDepartments();
+  const { data: laboratories } = useLaboratories();
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -27,8 +31,11 @@ export default function SystemSettings() {
       <div className="rounded-md border border-border bg-card p-6 space-y-4">
         <h2 className="font-mono text-sm font-semibold">Departments</h2>
         <div className="divide-y divide-border">
-          {["Chemistry", "Biology", "Physics", "Computer Science", "Electrical Engineering"].map((d) => (
-            <div key={d} className="py-2 text-sm">{d}</div>
+          {(departments ?? []).map((d) => (
+            <div key={d.id} className="py-2 text-sm flex items-center justify-between">
+              <span>{d.name}</span>
+              <span className="text-xs text-muted-foreground font-mono">{d.abbreviation}</span>
+            </div>
           ))}
         </div>
         <Button variant="outline" size="sm">Add Department</Button>
@@ -37,15 +44,14 @@ export default function SystemSettings() {
       <div className="rounded-md border border-border bg-card p-6 space-y-4">
         <h2 className="font-mono text-sm font-semibold">Laboratories</h2>
         <div className="divide-y divide-border">
-          {["Chemistry Lab A", "Chemistry Lab B", "Biology Lab A", "Biology Lab B", "Physics Lab C"].map((l) => (
-            <div key={l} className="py-2 text-sm">{l}</div>
+          {(laboratories ?? []).map((l) => (
+            <div key={l.id} className="py-2 text-sm flex items-center justify-between">
+              <span>{l.name}</span>
+              <span className="text-xs text-muted-foreground">{(l as any).departments?.name ?? ""}</span>
+            </div>
           ))}
         </div>
         <Button variant="outline" size="sm">Add Laboratory</Button>
-      </div>
-
-      <div className="flex justify-end">
-        <Button>Save Settings</Button>
       </div>
     </div>
   );

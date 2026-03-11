@@ -3,16 +3,15 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
-
-const mockInspections = [
-  { id: "SI-001", date: "2026-03-08", lab: "Chemistry Lab A", inspector: "Ato Kebede", fire: "Pass", electrical: "Pass", ppe: "Pass", exit: "Pass", hazards: "None", action: "N/A", followUp: "" },
-  { id: "SI-002", date: "2026-03-07", lab: "Biology Lab B", inspector: "Ato Dawit", fire: "Pass", electrical: "Fail", ppe: "Pass", exit: "Pass", hazards: "Exposed wiring near sink", action: "Electrical team notified", followUp: "2026-03-14" },
-  { id: "SI-003", date: "2026-03-05", lab: "Physics Lab C", inspector: "Ato Yonas", fire: "Pass", electrical: "Pass", ppe: "Fail", exit: "Pass", hazards: "Insufficient goggles", action: "Order placed", followUp: "2026-03-12" },
-];
+import { useSafetyInspections } from "@/hooks/useSupabaseQuery";
 
 export default function SafetyInspections() {
   const [search, setSearch] = useState("");
-  const filtered = mockInspections.filter((i) => i.lab.toLowerCase().includes(search.toLowerCase()));
+  const { data: inspections, isLoading } = useSafetyInspections();
+
+  const filtered = (inspections ?? []).filter((i) =>
+    ((i as any).laboratories?.name ?? "").toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-4">
@@ -33,33 +32,33 @@ export default function SafetyInspections() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">ID</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Date</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Laboratory</th>
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Inspector</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Fire</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Electrical</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">PPE</th>
+              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Exit</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Hazards</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Follow-Up</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
+            {isLoading && <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
             {filtered.map((i) => (
               <tr key={i.id} className="hover:bg-muted/30 cursor-pointer">
-                <td className="px-4 py-2 font-mono text-xs">{i.id}</td>
-                <td className="px-4 py-2">{i.date}</td>
-                <td className="px-4 py-2 font-medium">{i.lab}</td>
-                <td className="px-4 py-2">{i.inspector}</td>
-                <td className="px-4 py-2"><StatusBadge status={i.fire === "Pass" ? "success" : "danger"} label={i.fire} /></td>
-                <td className="px-4 py-2"><StatusBadge status={i.electrical === "Pass" ? "success" : "danger"} label={i.electrical} /></td>
-                <td className="px-4 py-2"><StatusBadge status={i.ppe === "Pass" ? "success" : "danger"} label={i.ppe} /></td>
-                <td className="px-4 py-2 max-w-40 truncate">{i.hazards}</td>
-                <td className="px-4 py-2 font-mono text-xs">{i.followUp || "—"}</td>
+                <td className="px-4 py-2 font-mono text-xs">{i.inspection_date}</td>
+                <td className="px-4 py-2 font-medium">{(i as any).laboratories?.name ?? "—"}</td>
+                <td className="px-4 py-2"><StatusBadge status={i.fire_safety ? "success" : "danger"} label={i.fire_safety ? "Pass" : "Fail"} /></td>
+                <td className="px-4 py-2"><StatusBadge status={i.electrical_safety ? "success" : "danger"} label={i.electrical_safety ? "Pass" : "Fail"} /></td>
+                <td className="px-4 py-2"><StatusBadge status={i.ppe_status ? "success" : "danger"} label={i.ppe_status ? "Pass" : "Fail"} /></td>
+                <td className="px-4 py-2"><StatusBadge status={i.emergency_exit ? "success" : "danger"} label={i.emergency_exit ? "Pass" : "Fail"} /></td>
+                <td className="px-4 py-2 max-w-40 truncate">{i.hazards_identified ?? "None"}</td>
+                <td className="px-4 py-2 font-mono text-xs">{i.follow_up_date ?? "—"}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No inspections found.</div>}
       </div>
     </div>
   );

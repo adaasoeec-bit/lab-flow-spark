@@ -3,17 +3,16 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
-
-const mockActivities = [
-  { id: "TA-001", date: "2026-03-10", technician: "Ato Kebede", lab: "Chemistry Lab A", description: "Prepared reagents for CHEM 101 session", course: "CHEM 101", start: "07:30", end: "08:00", verified: true },
-  { id: "TA-002", date: "2026-03-10", technician: "Ato Kebede", lab: "Chemistry Lab A", description: "Cleaned and stored glassware after session", course: "CHEM 101", start: "10:00", end: "10:45", verified: false },
-  { id: "TA-003", date: "2026-03-10", technician: "Ato Dawit", lab: "Biology Lab B", description: "Calibrated microscopes for BIO 201", course: "BIO 201", start: "09:00", end: "09:30", verified: true },
-  { id: "TA-004", date: "2026-03-10", technician: "Ato Yonas", lab: "Physics Lab C", description: "Set up optics bench equipment", course: "PHY 301", start: "13:00", end: "13:45", verified: false },
-];
+import { useTechnicianActivities } from "@/hooks/useSupabaseQuery";
 
 export default function TechnicianActivities() {
   const [search, setSearch] = useState("");
-  const filtered = mockActivities.filter((a) => a.technician.toLowerCase().includes(search.toLowerCase()) || a.description.toLowerCase().includes(search.toLowerCase()));
+  const { data: activities, isLoading } = useTechnicianActivities();
+
+  const filtered = (activities ?? []).filter((a) =>
+    a.activity_description.toLowerCase().includes(search.toLowerCase()) ||
+    (a.course_supported ?? "").toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-4">
@@ -34,9 +33,7 @@ export default function TechnicianActivities() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">ID</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Date</th>
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Technician</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Laboratory</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Activity</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Course</th>
@@ -45,22 +42,22 @@ export default function TechnicianActivities() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
+            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
             {filtered.map((a) => (
               <tr key={a.id} className="hover:bg-muted/30 cursor-pointer">
-                <td className="px-4 py-2 font-mono text-xs">{a.id}</td>
-                <td className="px-4 py-2">{a.date}</td>
-                <td className="px-4 py-2 font-medium">{a.technician}</td>
-                <td className="px-4 py-2">{a.lab}</td>
-                <td className="px-4 py-2 max-w-60 truncate">{a.description}</td>
-                <td className="px-4 py-2">{a.course}</td>
-                <td className="px-4 py-2 font-mono text-xs">{a.start}–{a.end}</td>
+                <td className="px-4 py-2 font-mono text-xs">{a.date}</td>
+                <td className="px-4 py-2">{(a as any).laboratories?.name ?? "—"}</td>
+                <td className="px-4 py-2 max-w-60 truncate">{a.activity_description}</td>
+                <td className="px-4 py-2">{a.course_supported ?? "—"}</td>
+                <td className="px-4 py-2 font-mono text-xs">{a.start_time?.slice(0,5)}–{a.end_time?.slice(0,5) ?? "..."}</td>
                 <td className="px-4 py-2">
-                  <StatusBadge status={a.verified ? "success" : "warning"} label={a.verified ? "Verified" : "Pending"} />
+                  <StatusBadge status={a.supervisor_verified ? "success" : "warning"} label={a.supervisor_verified ? "Verified" : "Pending"} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No activities found.</div>}
       </div>
     </div>
   );

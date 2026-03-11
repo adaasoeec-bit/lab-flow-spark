@@ -1,14 +1,7 @@
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-
-const mockUsers = [
-  { id: "U-001", name: "Admin User", email: "admin@astu.edu.et", role: "admin", status: "active", lastLogin: "2026-03-10" },
-  { id: "U-002", name: "Ato Kebede", email: "kebede@astu.edu.et", role: "technician", status: "active", lastLogin: "2026-03-10" },
-  { id: "U-003", name: "Dr. Abebe", email: "abebe@astu.edu.et", role: "instructor", status: "active", lastLogin: "2026-03-09" },
-  { id: "U-004", name: "Ato Dawit", email: "dawit@astu.edu.et", role: "technician", status: "active", lastLogin: "2026-03-10" },
-  { id: "U-005", name: "Dr. Tigist", email: "tigist@astu.edu.et", role: "supervisor", status: "active", lastLogin: "2026-03-08" },
-];
+import { useProfiles, useUserRoles } from "@/hooks/useSupabaseQuery";
 
 const roleMap: Record<string, { type: "info" | "success" | "warning" | "neutral"; label: string }> = {
   admin: { type: "info", label: "Administrator" },
@@ -19,6 +12,12 @@ const roleMap: Record<string, { type: "info" | "success" | "warning" | "neutral"
 };
 
 export default function UserManagement() {
+  const { data: profiles, isLoading: loadingProfiles } = useProfiles();
+  const { data: roles, isLoading: loadingRoles } = useUserRoles();
+
+  const roleByUser = new Map<string, string>();
+  (roles ?? []).forEach(r => roleByUser.set(r.user_id, r.role));
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -36,22 +35,24 @@ export default function UserManagement() {
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Email</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Role</th>
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Last Login</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {mockUsers.map((u) => (
-              <tr key={u.id} className="hover:bg-muted/30 cursor-pointer">
-                <td className="px-4 py-2 font-medium">{u.name}</td>
-                <td className="px-4 py-2 font-mono text-xs">{u.email}</td>
-                <td className="px-4 py-2"><StatusBadge status={roleMap[u.role].type} label={roleMap[u.role].label} /></td>
-                <td className="px-4 py-2"><StatusBadge status="success" label="Active" /></td>
-                <td className="px-4 py-2 font-mono text-xs">{u.lastLogin}</td>
-              </tr>
-            ))}
+            {(loadingProfiles || loadingRoles) && <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
+            {(profiles ?? []).map((u) => {
+              const r = roleByUser.get(u.id) ?? "student";
+              const rm = roleMap[r] ?? { type: "neutral" as const, label: r };
+              return (
+                <tr key={u.id} className="hover:bg-muted/30 cursor-pointer">
+                  <td className="px-4 py-2 font-medium">{u.full_name || "—"}</td>
+                  <td className="px-4 py-2 font-mono text-xs">{u.email ?? "—"}</td>
+                  <td className="px-4 py-2"><StatusBadge status={rm.type} label={rm.label} /></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        {!loadingProfiles && (profiles ?? []).length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No users found.</div>}
       </div>
     </div>
   );

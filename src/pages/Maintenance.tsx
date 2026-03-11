@@ -3,22 +3,23 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
+import { useMaintenanceLogs } from "@/hooks/useSupabaseQuery";
 
-const mockLogs = [
-  { id: "MT-001", equipment: "Spectrophotometer UV-2600", date: "2026-03-08", type: "Preventive", problem: "Lamp replacement due", action: "Replaced deuterium lamp", technician: "Ato Kebede", approval: "Approved", status: "completed" },
-  { id: "MT-002", equipment: "Autoclave SX-500", date: "2026-03-07", type: "Corrective", problem: "Pressure seal leak", action: "Replaced gasket", technician: "Ato Dawit", approval: "Pending", status: "pending" },
-  { id: "MT-003", equipment: "Fume Hood #3", date: "2026-03-06", type: "Preventive", problem: "Filter replacement", action: "Scheduled", technician: "Ato Kebede", approval: "Pending", status: "scheduled" },
-];
-
-const statusMap: Record<string, { type: "success" | "warning" | "neutral"; label: string }> = {
+const statusMap: Record<string, { type: "success" | "warning" | "neutral" | "info"; label: string }> = {
   completed: { type: "success", label: "Complete" },
   pending: { type: "warning", label: "Pending" },
-  scheduled: { type: "neutral", label: "Scheduled" },
+  in_progress: { type: "info", label: "In Progress" },
+  cancelled: { type: "neutral", label: "Cancelled" },
 };
 
 export default function Maintenance() {
   const [search, setSearch] = useState("");
-  const filtered = mockLogs.filter((l) => l.equipment.toLowerCase().includes(search.toLowerCase()) || l.technician.toLowerCase().includes(search.toLowerCase()));
+  const { data: logs, isLoading } = useMaintenanceLogs();
+
+  const filtered = (logs ?? []).filter((l) =>
+    ((l as any).equipment?.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (l.problem_reported ?? "").toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-4">
@@ -39,7 +40,6 @@ export default function Maintenance() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">ID</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Equipment</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Date</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Type</th>
@@ -50,24 +50,26 @@ export default function Maintenance() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {mockLogs.filter((l) => l.equipment.toLowerCase().includes(search.toLowerCase())).map((l) => (
-              <tr key={l.id} className="hover:bg-muted/30 cursor-pointer">
-                <td className="px-4 py-2 font-mono text-xs">{l.id}</td>
-                <td className="px-4 py-2 font-medium">{l.equipment}</td>
-                <td className="px-4 py-2">{l.date}</td>
-                <td className="px-4 py-2">{l.type}</td>
-                <td className="px-4 py-2 max-w-48 truncate">{l.problem}</td>
-                <td className="px-4 py-2 max-w-48 truncate">{l.action}</td>
-                <td className="px-4 py-2">
-                  <StatusBadge status={l.approval === "Approved" ? "success" : "warning"} label={l.approval} />
-                </td>
-                <td className="px-4 py-2">
-                  <StatusBadge status={statusMap[l.status].type} label={statusMap[l.status].label} />
-                </td>
-              </tr>
-            ))}
+            {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
+            {filtered.map((l) => {
+              const st = statusMap[l.status] ?? { type: "neutral" as const, label: l.status };
+              return (
+                <tr key={l.id} className="hover:bg-muted/30 cursor-pointer">
+                  <td className="px-4 py-2 font-medium">{(l as any).equipment?.name ?? "—"}</td>
+                  <td className="px-4 py-2">{l.maintenance_date}</td>
+                  <td className="px-4 py-2 capitalize">{l.maintenance_type}</td>
+                  <td className="px-4 py-2 max-w-48 truncate">{l.problem_reported ?? "—"}</td>
+                  <td className="px-4 py-2 max-w-48 truncate">{l.action_taken ?? "—"}</td>
+                  <td className="px-4 py-2">
+                    <StatusBadge status={l.supervisor_approved ? "success" : "warning"} label={l.supervisor_approved ? "Approved" : "Pending"} />
+                  </td>
+                  <td className="px-4 py-2"><StatusBadge status={st.type} label={st.label} /></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No maintenance logs found.</div>}
       </div>
     </div>
   );

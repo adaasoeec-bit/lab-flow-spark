@@ -3,30 +3,24 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Download } from "lucide-react";
-
-const mockEquipment = [
-  { id: "EQ-001", name: "Spectrophotometer UV-2600", category: "Analytical", model: "UV-2600", serial: "SH-2024-001", lab: "Chemistry Lab A", status: "operational", lastCal: "2026-01-15", nextCal: "2026-03-15", technician: "Ato Kebede" },
-  { id: "EQ-002", name: "Autoclave SX-500", category: "Sterilization", model: "SX-500", serial: "SX-2023-045", lab: "Biology Lab B", status: "maintenance", lastCal: "2025-12-01", nextCal: "2026-06-01", technician: "Ato Dawit" },
-  { id: "EQ-003", name: "Digital Oscilloscope", category: "Electronics", model: "DSO-2200", serial: "DS-2024-112", lab: "Physics Lab C", status: "operational", lastCal: "2026-02-20", nextCal: "2026-08-20", technician: "Ato Yonas" },
-  { id: "EQ-004", name: "Centrifuge 5810R", category: "General", model: "5810R", serial: "EP-2022-078", lab: "Biology Lab A", status: "operational", lastCal: "2026-01-10", nextCal: "2026-07-10", technician: "Ato Dawit" },
-  { id: "EQ-005", name: "Fume Hood #3", category: "Safety", model: "FH-300", serial: "FH-2021-003", lab: "Chemistry Lab A", status: "needs-repair", lastCal: "2025-11-05", nextCal: "2026-03-10", technician: "Ato Kebede" },
-];
+import { useEquipment } from "@/hooks/useSupabaseQuery";
 
 const statusMap: Record<string, { type: "success" | "warning" | "danger" | "neutral"; label: string }> = {
   operational: { type: "success", label: "Operational" },
-  maintenance: { type: "warning", label: "Maintenance" },
-  "needs-repair": { type: "danger", label: "Needs Repair" },
+  under_maintenance: { type: "warning", label: "Maintenance" },
+  out_of_service: { type: "danger", label: "Out of Service" },
   decommissioned: { type: "neutral", label: "Decommissioned" },
 };
 
 export default function Equipment() {
   const [search, setSearch] = useState("");
+  const { data: equipment, isLoading } = useEquipment();
 
-  const filtered = mockEquipment.filter(
+  const filtered = (equipment ?? []).filter(
     (e) =>
       e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.category.toLowerCase().includes(search.toLowerCase()) ||
-      e.lab.toLowerCase().includes(search.toLowerCase())
+      (e.category ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      ((e as any).laboratories?.name ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -36,9 +30,7 @@ export default function Equipment() {
           <h1 className="text-xl font-bold">Equipment Management</h1>
           <p className="text-sm text-muted-foreground mt-1">Laboratory equipment inventory and tracking</p>
         </div>
-        <Button size="sm">
-          <Plus className="mr-2 h-4 w-4" /> Add Equipment
-        </Button>
+        <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add Equipment</Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -53,7 +45,6 @@ export default function Equipment() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">ID</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Equipment Name</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Category</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Laboratory</th>
@@ -63,26 +54,27 @@ export default function Equipment() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((e) => (
-              <tr key={e.id} className="hover:bg-muted/30 cursor-pointer">
-                <td className="px-4 py-2 font-mono text-xs">{e.id}</td>
-                <td className="px-4 py-2 font-medium">{e.name}</td>
-                <td className="px-4 py-2">{e.category}</td>
-                <td className="px-4 py-2">{e.lab}</td>
-                <td className="px-4 py-2 font-mono text-xs">{e.serial}</td>
-                <td className="px-4 py-2 font-mono text-xs">
-                  <StatusBadge
-                    status={new Date(e.nextCal) <= new Date() ? "danger" : "neutral"}
-                    label={e.nextCal}
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <StatusBadge status={statusMap[e.status].type} label={statusMap[e.status].label} />
-                </td>
-              </tr>
-            ))}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
+            {filtered.map((e) => {
+              const st = statusMap[e.status] ?? { type: "neutral" as const, label: e.status };
+              return (
+                <tr key={e.id} className="hover:bg-muted/30 cursor-pointer">
+                  <td className="px-4 py-2 font-medium">{e.name}</td>
+                  <td className="px-4 py-2">{e.category ?? "—"}</td>
+                  <td className="px-4 py-2">{(e as any).laboratories?.name ?? "—"}</td>
+                  <td className="px-4 py-2 font-mono text-xs">{e.serial_number ?? "—"}</td>
+                  <td className="px-4 py-2 font-mono text-xs">
+                    {e.next_calibration ? (
+                      <StatusBadge status={new Date(e.next_calibration) <= new Date() ? "danger" : "neutral"} label={e.next_calibration} />
+                    ) : "—"}
+                  </td>
+                  <td className="px-4 py-2"><StatusBadge status={st.type} label={st.label} /></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No equipment found.</div>}
       </div>
     </div>
   );
