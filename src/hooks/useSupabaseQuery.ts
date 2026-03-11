@@ -1,6 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export function useColleges() {
+  return useQuery({
+    queryKey: ["colleges"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("colleges" as any).select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useLaboratories() {
   return useQuery({
     queryKey: ["laboratories"],

@@ -1,15 +1,17 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 
-type AppRole = "admin" | "supervisor" | "technician" | "instructor" | "student";
+type AppRole = "admin" | "avd" | "department_head" | "ara" | "supervisor" | "technician" | "instructor" | "student" | "management";
 
 interface Profile {
   id: string;
   full_name: string;
   email: string | null;
   phone: string | null;
+  avatar_url?: string | null;
+  department_id: string | null;
+  password_change_required?: boolean;
 }
 
 interface AuthContextType {
@@ -18,9 +20,11 @@ interface AuthContextType {
   profile: Profile | null;
   role: AppRole | null;
   loading: boolean;
+  passwordChangeRequired: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,31 +35,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
 
   const fetchProfileAndRole = async (userId: string) => {
     const [profileRes, roleRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).single(),
       supabase.rpc("get_user_role", { _user_id: userId }),
     ]);
-    if (profileRes.data) setProfile(profileRes.data as Profile);
+    if (profileRes.data) {
+      const p = profileRes.data as any;
+      setProfile(p as Profile);
+      setPasswordChangeRequired(p.password_change_required ?? false);
+    }
     if (roleRes.data) setRole(roleRes.data as AppRole);
   };
 
+  const refreshProfile = async () => {
+    if (user) await fetchProfileAndRole(user.id);
+  };
+
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          // Use setTimeout to avoid Supabase auth deadlock
-          setTimeout(() => fetchProfileAndRole(session.user.id), 0);
-        } else {
-          setProfile(null);
-          setRole(null);
-        }
-        setLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        setTimeout(() => fetchProfileAndRole(session.user.id), 0);
+      } else {
+        setProfile(null);
+        setRole(null);
+        setPasswordChangeRequired(false);
       }
-    );
+      setLoading(false);
+    });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -78,10 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
-      },
+      options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
     });
     return { error: error as Error | null };
   };
@@ -90,10 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setRole(null);
+    setPasswordChangeRequired(false);
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, role, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{ session, user, profile, role, loading, passwordChangeRequired, signIn, signUp, signOut, refreshProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );
