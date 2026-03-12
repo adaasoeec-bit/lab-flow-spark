@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Download } from "lucide-react";
 import { useLabSessions } from "@/hooks/useSupabaseQuery";
+import { LabSessionDialog } from "@/components/dialogs/LabSessionDialog";
 
 export default function LabSessions() {
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { data: sessions, isLoading } = useLabSessions();
 
   const filtered = (sessions ?? []).filter(
@@ -22,7 +24,7 @@ export default function LabSessions() {
           <h1 className="text-xl font-bold">Laboratory Sessions</h1>
           <p className="text-sm text-muted-foreground mt-1">Session usage logbook</p>
         </div>
-        <Button size="sm"><Plus className="mr-2 h-4 w-4" /> New Session</Button>
+        <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Session</Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -67,6 +69,7 @@ export default function LabSessions() {
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">No sessions found.</div>
         )}
       </div>
+      <LabSessionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }

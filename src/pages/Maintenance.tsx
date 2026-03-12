@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { useMaintenanceLogs } from "@/hooks/useSupabaseQuery";
+import { MaintenanceDialog } from "@/components/dialogs/MaintenanceDialog";
 
 const statusMap: Record<string, { type: "success" | "warning" | "neutral" | "info"; label: string }> = {
   completed: { type: "success", label: "Complete" },
@@ -14,6 +15,7 @@ const statusMap: Record<string, { type: "success" | "warning" | "neutral" | "inf
 
 export default function Maintenance() {
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { data: logs, isLoading } = useMaintenanceLogs();
 
   const filtered = (logs ?? []).filter((l) =>
@@ -28,7 +30,7 @@ export default function Maintenance() {
           <h1 className="text-xl font-bold">Equipment Maintenance</h1>
           <p className="text-sm text-muted-foreground mt-1">Track maintenance activities and approvals</p>
         </div>
-        <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Log Maintenance</Button>
+        <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Log Maintenance</Button>
       </div>
 
       <div className="relative max-w-sm">
@@ -71,6 +73,7 @@ export default function Maintenance() {
         </table>
         {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No maintenance logs found.</div>}
       </div>
+      <MaintenanceDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }
