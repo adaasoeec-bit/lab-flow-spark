@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, AlertTriangle } from "lucide-react";
 import { useConsumables } from "@/hooks/useSupabaseQuery";
+import { ConsumableDialog } from "@/components/dialogs/ConsumableDialog";
 
 const LOW_STOCK_THRESHOLD = 10;
 
 export default function Consumables() {
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { data: consumables, isLoading } = useConsumables();
 
   const filtered = (consumables ?? []).filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
@@ -20,7 +22,7 @@ export default function Consumables() {
           <h1 className="text-xl font-bold">Consumable Materials</h1>
           <p className="text-sm text-muted-foreground mt-1">Laboratory materials inventory tracking</p>
         </div>
-        <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add Material</Button>
+        <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Add Material</Button>
       </div>
 
       <div className="relative max-w-sm">
@@ -66,6 +68,7 @@ export default function Consumables() {
         </table>
         {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No consumables found.</div>}
       </div>
+      <ConsumableDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }

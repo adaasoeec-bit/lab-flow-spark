@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { useTechnicianActivities } from "@/hooks/useSupabaseQuery";
+import { TechnicianActivityDialog } from "@/components/dialogs/TechnicianActivityDialog";
 
 export default function TechnicianActivities() {
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { data: activities, isLoading } = useTechnicianActivities();
 
   const filtered = (activities ?? []).filter((a) =>
@@ -21,7 +23,7 @@ export default function TechnicianActivities() {
           <h1 className="text-xl font-bold">Technician Activities</h1>
           <p className="text-sm text-muted-foreground mt-1">Daily activity log and supervisor verification</p>
         </div>
-        <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Log Activity</Button>
+        <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Log Activity</Button>
       </div>
 
       <div className="relative max-w-sm">
@@ -59,6 +61,7 @@ export default function TechnicianActivities() {
         </table>
         {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No activities found.</div>}
       </div>
+      <TechnicianActivityDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }

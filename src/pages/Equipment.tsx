@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Download } from "lucide-react";
 import { useEquipment } from "@/hooks/useSupabaseQuery";
+import { EquipmentDialog } from "@/components/dialogs/EquipmentDialog";
 
 const statusMap: Record<string, { type: "success" | "warning" | "danger" | "neutral"; label: string }> = {
   operational: { type: "success", label: "Operational" },
@@ -14,6 +15,7 @@ const statusMap: Record<string, { type: "success" | "warning" | "danger" | "neut
 
 export default function Equipment() {
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { data: equipment, isLoading } = useEquipment();
 
   const filtered = (equipment ?? []).filter(
@@ -30,7 +32,7 @@ export default function Equipment() {
           <h1 className="text-xl font-bold">Equipment Management</h1>
           <p className="text-sm text-muted-foreground mt-1">Laboratory equipment inventory and tracking</p>
         </div>
-        <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add Equipment</Button>
+        <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Add Equipment</Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -76,6 +78,7 @@ export default function Equipment() {
         </table>
         {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No equipment found.</div>}
       </div>
+      <EquipmentDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }
