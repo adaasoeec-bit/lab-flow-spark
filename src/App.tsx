@@ -52,6 +52,7 @@ function AppRoutes() {
         <Route path="/activities" element={<TechnicianActivities />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/users" element={<UserManagement />} />
+        <Route path="/roles" element={<RoleManagement />} />
         <Route path="/colleges" element={<CollegesDepartments />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<SystemSettings />} />
