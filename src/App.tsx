@@ -14,6 +14,7 @@ import Consumables from "@/pages/Consumables";
 import TechnicianActivities from "@/pages/TechnicianActivities";
 import Reports from "@/pages/Reports";
 import UserManagement from "@/pages/UserManagement";
+import RoleManagement from "@/pages/RoleManagement";
 import SystemSettings from "@/pages/SystemSettings";
 import CollegesDepartments from "@/pages/CollegesDepartments";
 import Profile from "@/pages/Profile";

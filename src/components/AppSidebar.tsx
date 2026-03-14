@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, FlaskConical, Microscope, Wrench, ShieldCheck,
-  Package, ClipboardList, FileBarChart, Users, Settings, LogOut, Building2, UserCircle,
+  Package, ClipboardList, FileBarChart, Users, Settings, LogOut, Building2, UserCircle, Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -13,50 +13,32 @@ import {
 import astuLogo from "@/assets/astu-logo.png";
 
 const mainNav = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Lab Sessions", url: "/sessions", icon: FlaskConical },
-  { title: "Equipment", url: "/equipment", icon: Microscope },
-  { title: "Maintenance", url: "/maintenance", icon: Wrench },
-  { title: "Safety Inspections", url: "/safety", icon: ShieldCheck },
-  { title: "Consumables", url: "/consumables", icon: Package },
-  { title: "Technician Activities", url: "/activities", icon: ClipboardList },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, permission: "dashboard.view" },
+  { title: "Lab Sessions", url: "/sessions", icon: FlaskConical, permission: "lab_sessions.view" },
+  { title: "Equipment", url: "/equipment", icon: Microscope, permission: "equipment.view" },
+  { title: "Maintenance", url: "/maintenance", icon: Wrench, permission: "maintenance.view" },
+  { title: "Safety Inspections", url: "/safety", icon: ShieldCheck, permission: "safety.view" },
+  { title: "Consumables", url: "/consumables", icon: Package, permission: "consumables.view" },
+  { title: "Technician Activities", url: "/activities", icon: ClipboardList, permission: "activities.view" },
 ];
 
 const adminNav = [
-  { title: "Reports", url: "/reports", icon: FileBarChart },
-  { title: "User Management", url: "/users", icon: Users },
-  { title: "Colleges & Depts", url: "/colleges", icon: Building2 },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Reports", url: "/reports", icon: FileBarChart, permission: "reports.view" },
+  { title: "User Management", url: "/users", icon: Users, permission: "users.view" },
+  { title: "Role Management", url: "/roles", icon: Shield, permission: "roles.view" },
+  { title: "Colleges & Depts", url: "/colleges", icon: Building2, permission: "colleges.view" },
+  { title: "Settings", url: "/settings", icon: Settings, permission: "settings.view" },
 ];
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: "System Admin",
-  avd: "AVD",
-  department_head: "Dept. Head",
-  ara: "ARA",
-  supervisor: "Supervisor",
-  technician: "Technician",
-  instructor: "Instructor",
-  student: "Student",
-  management: "Management",
-};
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { profile, role, signOut } = useAuth();
+  const { profile, role, signOut, hasPermission } = useAuth();
   const isActive = (path: string) => location.pathname === path;
 
-  // Role-based nav filtering
-  const canManage = ["admin", "avd", "department_head", "supervisor"].includes(role ?? "");
-  const visibleAdmin = role === "admin"
-    ? adminNav
-    : canManage
-      ? adminNav.filter((n) => n.url !== "/settings")
-      : role === "management"
-        ? adminNav.filter((n) => n.url === "/reports")
-        : [];
+  const visibleMain = mainNav.filter((n) => hasPermission(n.permission));
+  const visibleAdmin = adminNav.filter((n) => hasPermission(n.permission));
 
   return (
     <Sidebar collapsible="icon">
@@ -71,30 +53,32 @@ export function AppSidebar() {
           <div className="mt-3">
             <p className="text-xs font-medium text-sidebar-foreground truncate">{profile.full_name || profile.email}</p>
             <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-wider">
-              {ROLE_LABELS[role ?? ""] ?? role ?? "user"}
+              {role ?? "user"}
             </p>
           </div>
         )}
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50">Operations</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNav.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url} end={item.url === "/"}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {visibleMain.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-foreground/50">Operations</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {visibleMain.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <NavLink to={item.url} end={item.url === "/"}>
+                        <item.icon className="h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {visibleAdmin.length > 0 && (
           <SidebarGroup>

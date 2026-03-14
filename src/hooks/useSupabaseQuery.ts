@@ -144,3 +144,48 @@ export function useUserRoles() {
     },
   });
 }
+
+// New permission-based queries
+export function useCustomRoles() {
+  return useQuery({
+    queryKey: ["custom_roles"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("custom_roles" as any) as any).select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function usePermissions() {
+  return useQuery({
+    queryKey: ["permissions"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("permissions" as any) as any).select("*").order("category").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useRolePermissions() {
+  return useQuery({
+    queryKey: ["role_permissions"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("role_permissions" as any) as any).select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useUserRoleAssignments() {
+  return useQuery({
+    queryKey: ["user_role_assignments"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("user_role_assignments" as any) as any).select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+}

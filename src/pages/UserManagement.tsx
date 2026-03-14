@@ -6,54 +6,36 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, RotateCcw, Trash2, Pencil, Search } from "lucide-react";
-import { useProfiles, useUserRoles, useDepartments } from "@/hooks/useSupabaseQuery";
+import { useProfiles, useDepartments, useCustomRoles, useUserRoleAssignments, useColleges } from "@/hooks/useSupabaseQuery";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
-const ALL_ROLES = [
-  { value: "admin", label: "System Admin" },
-  { value: "avd", label: "AVD" },
-  { value: "department_head", label: "Department Head" },
-  { value: "ara", label: "ARA" },
-  { value: "supervisor", label: "Supervisor" },
-  { value: "technician", label: "Technician" },
-  { value: "instructor", label: "Instructor" },
-  { value: "student", label: "Student" },
-  { value: "management", label: "Management" },
-];
-
-const ROLE_BADGE: Record<string, { type: "info" | "success" | "warning" | "neutral"; label: string }> = {
-  admin: { type: "info", label: "System Admin" },
-  avd: { type: "info", label: "AVD" },
-  department_head: { type: "warning", label: "Dept. Head" },
-  ara: { type: "warning", label: "ARA" },
-  supervisor: { type: "warning", label: "Supervisor" },
-  technician: { type: "success", label: "Technician" },
-  instructor: { type: "neutral", label: "Instructor" },
-  student: { type: "neutral", label: "Student" },
-  management: { type: "info", label: "Management" },
-};
-
 export default function UserManagement() {
   const { data: profiles, isLoading: loadingProfiles } = useProfiles();
-  const { data: roles, isLoading: loadingRoles } = useUserRoles();
+  const { data: assignments, isLoading: loadingAssignments } = useUserRoleAssignments();
   const { data: departments } = useDepartments();
-  const { role: myRole } = useAuth();
+  const { data: colleges } = useColleges();
+  const { data: customRoles } = useCustomRoles();
+  const { hasPermission } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
 
-  // Dialog state
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [form, setForm] = useState({ full_name: "", email: "", user_role: "student", department_id: "" });
+  const [form, setForm] = useState({ full_name: "", email: "", role_id: "", department_id: "", scope: "department", scope_id: "" });
   const [submitting, setSubmitting] = useState(false);
 
-  const roleByUser = new Map<string, string>();
-  (roles ?? []).forEach((r: any) => roleByUser.set(r.user_id, r.role));
+  // Map user_id → assignment info
+  const assignmentByUser = new Map<string, any>();
+  (assignments ?? []).forEach((a: any) => assignmentByUser.set(a.user_id, a));
+
+  // Map role_id → role name
+  const roleNameById = new Map<string, string>();
+  (customRoles ?? []).forEach((r: any) => roleNameById.set(r.id, r.name));
 
   const callManageUsers = async (body: Record<string, unknown>) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -64,15 +46,23 @@ export default function UserManagement() {
     return res;
   };
 
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ["profiles"] });
+    qc.invalidateQueries({ queryKey: ["user_role_assignments"] });
+    qc.invalidateQueries({ queryKey: ["user_roles"] });
+  };
+
   const handleCreate = async () => {
-    if (!form.email || !form.full_name) return;
+    if (!form.email || !form.full_name || !form.role_id) return;
     setSubmitting(true);
     const { data, error } = await callManageUsers({
       action: "create_user",
       email: form.email,
       full_name: form.full_name,
-      user_role: form.user_role,
+      role_id: form.role_id,
       department_id: form.department_id || null,
+      scope: form.scope,
+      scope_id: form.scope_id || null,
     });
     setSubmitting(false);
     if (error) {
@@ -80,9 +70,8 @@ export default function UserManagement() {
     } else {
       toast({ title: "User created", description: `${form.email} — default password: 12345678` });
       setCreateOpen(false);
-      setForm({ full_name: "", email: "", user_role: "student", department_id: "" });
-      qc.invalidateQueries({ queryKey: ["profiles"] });
-      qc.invalidateQueries({ queryKey: ["user_roles"] });
+      setForm({ full_name: "", email: "", role_id: "", department_id: "", scope: "department", scope_id: "" });
+      invalidateAll();
     }
   };
 
@@ -93,8 +82,7 @@ export default function UserManagement() {
       toast({ variant: "destructive", title: "Error", description: String(error) });
     } else {
       toast({ title: "User deleted" });
-      qc.invalidateQueries({ queryKey: ["profiles"] });
-      qc.invalidateQueries({ queryKey: ["user_roles"] });
+      invalidateAll();
     }
   };
 
@@ -108,98 +96,139 @@ export default function UserManagement() {
     }
   };
 
-  const handleUpdateRole = async () => {
+  const handleUpdateUser = async () => {
     if (!selectedUser) return;
     setSubmitting(true);
     const { error } = await callManageUsers({
-      action: "update_role",
+      action: "update_user_full",
       user_id: selectedUser.id,
-      new_role: form.user_role,
+      full_name: form.full_name,
+      department_id: form.department_id || null,
+      role_id: form.role_id,
+      scope: form.scope,
+      scope_id: form.scope_id || null,
     });
-    if (!error) {
-      await callManageUsers({
-        action: "update_user",
-        user_id: selectedUser.id,
-        full_name: form.full_name,
-        department_id: form.department_id || null,
-      });
-    }
     setSubmitting(false);
     if (error) {
       toast({ variant: "destructive", title: "Error", description: String(error) });
     } else {
       toast({ title: "User updated" });
       setEditOpen(false);
-      qc.invalidateQueries({ queryKey: ["profiles"] });
-      qc.invalidateQueries({ queryKey: ["user_roles"] });
+      invalidateAll();
     }
   };
 
   const openEdit = (user: any) => {
+    const assignment = assignmentByUser.get(user.id);
     setSelectedUser(user);
     setForm({
       full_name: user.full_name || "",
       email: user.email || "",
-      user_role: roleByUser.get(user.id) ?? "student",
+      role_id: assignment?.role_id || "",
       department_id: user.department_id || "",
+      scope: assignment?.scope || "department",
+      scope_id: assignment?.scope_id || "",
     });
     setEditOpen(true);
   };
 
   const filtered = (profiles ?? []).filter((u: any) => {
     const q = search.toLowerCase();
-    return !q || (u.full_name?.toLowerCase().includes(q)) || (u.email?.toLowerCase().includes(q));
+    return !q || u.full_name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
   });
 
-  const isAdmin = myRole === "admin";
+  const scopeOptions = [
+    { value: "all", label: "All (System-wide)" },
+    { value: "college", label: "College" },
+    { value: "department", label: "Department" },
+  ];
+
+  const renderScopeSelector = () => (
+    <>
+      <div className="space-y-2">
+        <Label>Data Scope</Label>
+        <Select value={form.scope} onValueChange={(v) => setForm({ ...form, scope: v, scope_id: "" })}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {scopeOptions.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      {form.scope === "college" && (
+        <div className="space-y-2">
+          <Label>College</Label>
+          <Select value={form.scope_id} onValueChange={(v) => setForm({ ...form, scope_id: v })}>
+            <SelectTrigger><SelectValue placeholder="Select college" /></SelectTrigger>
+            <SelectContent>
+              {(colleges ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {form.scope === "department" && (
+        <div className="space-y-2">
+          <Label>Scope Department</Label>
+          <Select value={form.scope_id} onValueChange={(v) => setForm({ ...form, scope_id: v })}>
+            <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+            <SelectContent>
+              {(departments ?? []).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-xl font-bold">User Management</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage system users and roles</p>
+          <p className="text-sm text-muted-foreground mt-1">Manage users, assign roles and data scope</p>
         </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add User</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create New User</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+        {hasPermission("users.create") && (
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add User</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>Create New User</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Full Name</Label>
+                  <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={form.role_id} onValueChange={(v) => setForm({ ...form, role_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                    <SelectContent>
+                      {(customRoles ?? []).map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Select value={form.department_id} onValueChange={(v) => setForm({ ...form, department_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                    <SelectContent>
+                      {(departments ?? []).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {renderScopeSelector()}
+                <p className="text-xs text-muted-foreground">Default password: <span className="font-mono">12345678</span>. User will be prompted to change on first login.</p>
               </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={form.user_role} onValueChange={(v) => setForm({ ...form, user_role: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ALL_ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Department</Label>
-                <Select value={form.department_id} onValueChange={(v) => setForm({ ...form, department_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
-                  <SelectContent>
-                    {(departments ?? []).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <p className="text-xs text-muted-foreground">Default password: <span className="font-mono">12345678</span>. User will be prompted to change on first login.</p>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleCreate} disabled={submitting}>{submitting ? "Creating…" : "Create User"}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button onClick={handleCreate} disabled={submitting}>{submitting ? "Creating…" : "Create User"}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
@@ -214,34 +243,41 @@ export default function UserManagement() {
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Email</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Role</th>
+              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Scope</th>
               <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {(loadingProfiles || loadingRoles) && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
+            {(loadingProfiles || loadingAssignments) && (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
             )}
             {filtered.map((u: any) => {
-              const r = roleByUser.get(u.id) ?? "student";
-              const badge = ROLE_BADGE[r] ?? { type: "neutral" as const, label: r };
+              const assignment = assignmentByUser.get(u.id);
+              const roleName = assignment ? roleNameById.get(assignment.role_id) ?? "—" : "—";
+              const scopeLabel = assignment?.scope === "all" ? "System-wide" : assignment?.scope === "college" ? "College" : assignment?.scope === "department" ? "Department" : "—";
               return (
                 <tr key={u.id} className="hover:bg-muted/30">
                   <td className="px-4 py-2 font-medium">{u.full_name || "—"}</td>
                   <td className="px-4 py-2 font-mono text-xs">{u.email ?? "—"}</td>
-                  <td className="px-4 py-2"><StatusBadge status={badge.type} label={badge.label} /></td>
+                  <td className="px-4 py-2">
+                    <StatusBadge status="info" label={roleName} />
+                  </td>
+                  <td className="px-4 py-2 text-xs text-muted-foreground">{scopeLabel}</td>
                   <td className="px-4 py-2 text-right space-x-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Edit">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    {isAdmin && (
-                      <>
-                        <Button variant="ghost" size="icon" onClick={() => handleResetPassword(u.id)} title="Reset Password">
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)} title="Delete" className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
+                    {hasPermission("users.edit") && (
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Edit">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {hasPermission("users.reset_password") && (
+                      <Button variant="ghost" size="icon" onClick={() => handleResetPassword(u.id)} title="Reset Password">
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {hasPermission("users.delete") && (
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)} title="Delete" className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     )}
                   </td>
                 </tr>
@@ -256,7 +292,7 @@ export default function UserManagement() {
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -265,10 +301,10 @@ export default function UserManagement() {
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
-              <Select value={form.user_role} onValueChange={(v) => setForm({ ...form, user_role: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={form.role_id} onValueChange={(v) => setForm({ ...form, role_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
                 <SelectContent>
-                  {ALL_ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                  {(customRoles ?? []).map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -281,9 +317,10 @@ export default function UserManagement() {
                 </SelectContent>
               </Select>
             </div>
+            {renderScopeSelector()}
           </div>
           <DialogFooter>
-            <Button onClick={handleUpdateRole} disabled={submitting}>{submitting ? "Saving…" : "Save Changes"}</Button>
+            <Button onClick={handleUpdateUser} disabled={submitting}>{submitting ? "Saving…" : "Save Changes"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

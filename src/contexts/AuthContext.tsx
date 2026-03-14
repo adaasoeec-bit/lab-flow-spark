@@ -1,8 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-
-type AppRole = "admin" | "avd" | "department_head" | "ara" | "supervisor" | "technician" | "instructor" | "student" | "management";
 
 interface Profile {
   id: string;
@@ -18,13 +16,15 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
-  role: AppRole | null;
+  role: string | null;
+  permissions: string[];
+  scope: { type: string; id: string | null } | null;
   loading: boolean;
   passwordChangeRequired: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  hasPermission: (code: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,26 +33,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<AppRole | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [scope, setScope] = useState<{ type: string; id: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
 
   const fetchProfileAndRole = async (userId: string) => {
-    const [profileRes, roleRes] = await Promise.all([
+    const [profileRes, roleInfoRes, permsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).single(),
-      supabase.rpc("get_user_role", { _user_id: userId }),
+      supabase.rpc("get_user_role_info" as any, { _user_id: userId }),
+      supabase.rpc("get_user_permissions" as any, { _user_id: userId }),
     ]);
+
     if (profileRes.data) {
       const p = profileRes.data as any;
       setProfile(p as Profile);
       setPasswordChangeRequired(p.password_change_required ?? false);
     }
-    if (roleRes.data) setRole(roleRes.data as AppRole);
+
+    const roleData = roleInfoRes.data as any;
+    if (roleData && Array.isArray(roleData) && roleData.length > 0) {
+      setRole(roleData[0].role_name);
+      setScope({ type: roleData[0].role_scope, id: roleData[0].role_scope_id });
+    } else if (roleData && roleData.role_name) {
+      setRole(roleData.role_name);
+      setScope({ type: roleData.role_scope, id: roleData.role_scope_id });
+    } else {
+      // Fallback to old system
+      const { data: oldRole } = await supabase.rpc("get_user_role", { _user_id: userId });
+      if (oldRole) setRole(oldRole === "admin" ? "Super Admin" : String(oldRole));
+    }
+
+    const permsData = permsRes.data as any;
+    if (Array.isArray(permsData)) {
+      setPermissions(permsData.map((p: any) => p.permission_code ?? p));
+    }
   };
 
   const refreshProfile = async () => {
     if (user) await fetchProfileAndRole(user.id);
   };
+
+  const hasPermission = useCallback(
+    (code: string) => permissions.includes(code),
+    [permissions]
+  );
 
   useEffect(() => {
     const {
@@ -65,6 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(null);
         setRole(null);
+        setPermissions([]);
+        setScope(null);
         setPasswordChangeRequired(false);
       }
       setLoading(false);
@@ -87,25 +115,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
-    });
-    return { error: error as Error | null };
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
     setRole(null);
+    setPermissions([]);
+    setScope(null);
     setPasswordChangeRequired(false);
   };
 
   return (
     <AuthContext.Provider
-      value={{ session, user, profile, role, loading, passwordChangeRequired, signIn, signUp, signOut, refreshProfile }}
+      value={{ session, user, profile, role, permissions, scope, loading, passwordChangeRequired, signIn, signOut, refreshProfile, hasPermission }}
     >
       {children}
     </AuthContext.Provider>
