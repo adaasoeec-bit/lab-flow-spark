@@ -121,6 +121,30 @@ export type Database = {
           },
         ]
       }
+      custom_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           abbreviation: string | null
@@ -366,6 +390,30 @@ export type Database = {
           },
         ]
       }
+      permissions: {
+        Row: {
+          category: string
+          code: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category: string
+          code: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -406,6 +454,39 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -513,6 +594,41 @@ export type Database = {
           },
         ]
       }
+      user_role_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          role_id: string
+          scope: string
+          scope_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role_id: string
+          scope?: string
+          scope_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role_id?: string
+          scope?: string
+          scope_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_role_assignments_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -541,9 +657,23 @@ export type Database = {
         Returns: boolean
       }
       equipment_department: { Args: { _equip_id: string }; Returns: string }
+      get_user_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          permission_code: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_user_role_info: {
+        Args: { _user_id: string }
+        Returns: {
+          role_name: string
+          role_scope: string
+          role_scope_id: string
+        }[]
       }
       has_role: {
         Args: {
@@ -554,8 +684,16 @@ export type Database = {
       }
       lab_department: { Args: { _lab_id: string }; Returns: string }
       mark_password_changed: { Args: never; Returns: undefined }
+      user_can_access_scope: {
+        Args: { _dept_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_college_id: { Args: { _user_id: string }; Returns: string }
       user_department_id: { Args: { _user_id: string }; Returns: string }
+      user_has_permission: {
+        Args: { _permission_code: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
