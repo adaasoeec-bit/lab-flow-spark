@@ -26,7 +26,7 @@ const adminNav = [
   { title: "Reports", url: "/reports", icon: FileBarChart, permission: "reports.view" },
   { title: "User Management", url: "/users", icon: Users, permission: "users.view" },
   { title: "Role Management", url: "/roles", icon: Shield, permission: "roles.view" },
-  { title: "Colleges & Depts", url: "/colleges", icon: Building2, permission: "colleges.view" },
+  { title: "Colleges, Depts & Labs", url: "/colleges", icon: Building2, permission: "colleges.view" },
   { title: "Settings", url: "/settings", icon: Settings, permission: "settings.view" },
 ];
 
