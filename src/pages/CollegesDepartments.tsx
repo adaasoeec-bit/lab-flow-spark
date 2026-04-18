@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { CsvImportButton } from "@/components/CsvImportButton";
 
 export default function CollegesDepartments() {
   const { data: colleges, isLoading: loadingColleges } = useColleges();
@@ -308,9 +309,36 @@ export default function CollegesDepartments() {
         <TabsContent value="laboratories" className="space-y-3 mt-4">
           <div className="flex items-center justify-between">
             <h2 className="font-mono text-sm font-semibold">Laboratories</h2>
-            {canCreateLab && (
-              <Button size="sm" onClick={openNewLab}><Plus className="mr-2 h-4 w-4" /> Add Laboratory</Button>
-            )}
+            <div className="flex items-center gap-2">
+              {canCreateLab && (
+                <CsvImportButton
+                  table="laboratories"
+                  entityLabel="laboratories"
+                  invalidateKey="laboratories"
+                  templateFilename="laboratories"
+                  templateColumns={["name", "location", "capacity", "department_name"]}
+                  templateExample={{
+                    name: "Electrical Lab 1",
+                    location: "Block A, Room 201",
+                    capacity: "30",
+                    department_name: "Electrical Engineering",
+                  }}
+                  mapRow={(row) => {
+                    if (!row.name) return null;
+                    const dept = (departments ?? []).find((d: any) => d.name?.toLowerCase() === (row.department_name ?? "").toLowerCase());
+                    return {
+                      name: row.name,
+                      location: row.location || null,
+                      capacity: row.capacity ? parseInt(row.capacity) : null,
+                      department_id: dept?.id ?? null,
+                    };
+                  }}
+                />
+              )}
+              {canCreateLab && (
+                <Button size="sm" onClick={openNewLab}><Plus className="mr-2 h-4 w-4" /> Add Laboratory</Button>
+              )}
+            </div>
           </div>
           <div className="rounded-md border border-border bg-card overflow-x-auto">
             <table className="w-full text-sm">
