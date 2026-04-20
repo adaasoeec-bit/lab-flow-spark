@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { useSafetyInspections } from "@/hooks/useSupabaseQuery";
 import { SafetyInspectionDialog } from "@/components/dialogs/SafetyInspectionDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SafetyInspections() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const { data: inspections, isLoading } = useSafetyInspections();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("safety.create");
 
   const filtered = (inspections ?? []).filter((i) =>
     ((i as any).laboratories?.name ?? "").toLowerCase().includes(search.toLowerCase())
@@ -22,7 +25,7 @@ export default function SafetyInspections() {
           <h1 className="text-xl font-bold">Safety Inspections</h1>
           <p className="text-sm text-muted-foreground mt-1">Laboratory safety compliance records</p>
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Inspection</Button>
+        {canCreate && <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Inspection</Button>}
       </div>
 
       <div className="relative max-w-sm">

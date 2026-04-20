@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, Download } from "lucide-react";
 import { useLabSessions } from "@/hooks/useSupabaseQuery";
 import { LabSessionDialog } from "@/components/dialogs/LabSessionDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LabSessions() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const { data: sessions, isLoading } = useLabSessions();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("lab_sessions.create");
 
   const filtered = (sessions ?? []).filter(
     (s) =>
@@ -24,7 +27,7 @@ export default function LabSessions() {
           <h1 className="text-xl font-bold">Laboratory Sessions</h1>
           <p className="text-sm text-muted-foreground mt-1">Session usage logbook</p>
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Session</Button>
+        {canCreate && <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Session</Button>}
       </div>
 
       <div className="flex items-center gap-2">
