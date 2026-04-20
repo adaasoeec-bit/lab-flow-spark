@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { useMaintenanceLogs } from "@/hooks/useSupabaseQuery";
 import { MaintenanceDialog } from "@/components/dialogs/MaintenanceDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 const statusMap: Record<string, { type: "success" | "warning" | "neutral" | "info"; label: string }> = {
   completed: { type: "success", label: "Complete" },
@@ -17,6 +18,8 @@ export default function Maintenance() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const { data: logs, isLoading } = useMaintenanceLogs();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("maintenance.create");
 
   const filtered = (logs ?? []).filter((l) =>
     ((l as any).equipment?.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
@@ -30,7 +33,7 @@ export default function Maintenance() {
           <h1 className="text-xl font-bold">Equipment Maintenance</h1>
           <p className="text-sm text-muted-foreground mt-1">Track maintenance activities and approvals</p>
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Log Maintenance</Button>
+        {canCreate && <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Log Maintenance</Button>}
       </div>
 
       <div className="relative max-w-sm">

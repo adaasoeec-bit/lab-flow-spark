@@ -6,6 +6,7 @@ import { Plus, Search, AlertTriangle } from "lucide-react";
 import { useConsumables, useLaboratories } from "@/hooks/useSupabaseQuery";
 import { ConsumableDialog } from "@/components/dialogs/ConsumableDialog";
 import { CsvImportButton } from "@/components/CsvImportButton";
+import { useAuth } from "@/contexts/AuthContext";
 
 const LOW_STOCK_THRESHOLD = 10;
 
@@ -14,6 +15,8 @@ export default function Consumables() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { data: consumables, isLoading } = useConsumables();
   const { data: laboratories } = useLaboratories();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("consumables.create");
 
   const filtered = (consumables ?? []).filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -24,39 +27,41 @@ export default function Consumables() {
           <h1 className="text-xl font-bold">Consumable Materials</h1>
           <p className="text-sm text-muted-foreground mt-1">Laboratory materials inventory tracking</p>
         </div>
-        <div className="flex items-center gap-2">
-          <CsvImportButton
-            table="consumables"
-            entityLabel="consumables"
-            invalidateKey="consumables"
-            templateFilename="consumables"
-            templateColumns={["name", "unit", "quantity_received", "quantity_issued", "laboratory_name", "issued_to"]}
-            templateExample={{
-              name: "Sodium Chloride",
-              unit: "kg",
-              quantity_received: "50",
-              quantity_issued: "10",
-              laboratory_name: "Chemistry Lab 1",
-              issued_to: "Dr. Smith",
-            }}
-            mapRow={(row) => {
-              if (!row.name) return null;
-              const lab = (laboratories ?? []).find((l: any) => l.name?.toLowerCase() === (row.laboratory_name ?? "").toLowerCase());
-              const received = parseInt(row.quantity_received) || 0;
-              const issued = parseInt(row.quantity_issued) || 0;
-              return {
-                name: row.name,
-                unit: row.unit || "pcs",
-                quantity_received: received,
-                quantity_issued: issued,
-                balance: received - issued,
-                laboratory_id: lab?.id ?? null,
-                issued_to: row.issued_to || null,
-              };
-            }}
-          />
-          <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Add Material</Button>
-        </div>
+        {canCreate && (
+          <div className="flex items-center gap-2">
+            <CsvImportButton
+              table="consumables"
+              entityLabel="consumables"
+              invalidateKey="consumables"
+              templateFilename="consumables"
+              templateColumns={["name", "unit", "quantity_received", "quantity_issued", "laboratory_name", "issued_to"]}
+              templateExample={{
+                name: "Sodium Chloride",
+                unit: "kg",
+                quantity_received: "50",
+                quantity_issued: "10",
+                laboratory_name: "Chemistry Lab 1",
+                issued_to: "Dr. Smith",
+              }}
+              mapRow={(row) => {
+                if (!row.name) return null;
+                const lab = (laboratories ?? []).find((l: any) => l.name?.toLowerCase() === (row.laboratory_name ?? "").toLowerCase());
+                const received = parseInt(row.quantity_received) || 0;
+                const issued = parseInt(row.quantity_issued) || 0;
+                return {
+                  name: row.name,
+                  unit: row.unit || "pcs",
+                  quantity_received: received,
+                  quantity_issued: issued,
+                  balance: received - issued,
+                  laboratory_id: lab?.id ?? null,
+                  issued_to: row.issued_to || null,
+                };
+              }}
+            />
+            <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Add Material</Button>
+          </div>
+        )}
       </div>
 
       <div className="relative max-w-sm">

@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { useTechnicianActivities } from "@/hooks/useSupabaseQuery";
 import { TechnicianActivityDialog } from "@/components/dialogs/TechnicianActivityDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function TechnicianActivities() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const { data: activities, isLoading } = useTechnicianActivities();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("activities.create");
 
   const filtered = (activities ?? []).filter((a) =>
     a.activity_description.toLowerCase().includes(search.toLowerCase()) ||
@@ -23,7 +26,7 @@ export default function TechnicianActivities() {
           <h1 className="text-xl font-bold">Technician Activities</h1>
           <p className="text-sm text-muted-foreground mt-1">Daily activity log and supervisor verification</p>
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Log Activity</Button>
+        {canCreate && <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Log Activity</Button>}
       </div>
 
       <div className="relative max-w-sm">
