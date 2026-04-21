@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { useMaintenanceLogs } from "@/hooks/useSupabaseQuery";
 import { MaintenanceDialog } from "@/components/dialogs/MaintenanceDialog";
+import { RowActions } from "@/components/RowActions";
 import { useAuth } from "@/contexts/AuthContext";
 
 const statusMap: Record<string, { type: "success" | "warning" | "neutral" | "info"; label: string }> = {
@@ -17,14 +18,21 @@ const statusMap: Record<string, { type: "success" | "warning" | "neutral" | "inf
 export default function Maintenance() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editRecord, setEditRecord] = useState<any | null>(null);
   const { data: logs, isLoading } = useMaintenanceLogs();
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("maintenance.create");
+  const canEdit = hasPermission("maintenance.edit");
+  const canDelete = hasPermission("maintenance.delete");
+  const showActions = canEdit || canDelete;
 
   const filtered = (logs ?? []).filter((l) =>
     ((l as any).equipment?.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
     (l.problem_reported ?? "").toLowerCase().includes(search.toLowerCase())
   );
+
+  const openAdd = () => { setEditRecord(null); setDialogOpen(true); };
+  const openEdit = (record: any) => { setEditRecord(record); setDialogOpen(true); };
 
   return (
     <div className="space-y-4">
@@ -33,7 +41,7 @@ export default function Maintenance() {
           <h1 className="text-xl font-bold">Equipment Maintenance</h1>
           <p className="text-sm text-muted-foreground mt-1">Track maintenance activities and approvals</p>
         </div>
-        {canCreate && <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Log Maintenance</Button>}
+        {canCreate && <Button size="sm" onClick={openAdd}><Plus className="mr-2 h-4 w-4" /> Log Maintenance</Button>}
       </div>
 
       <div className="relative max-w-sm">
@@ -52,14 +60,15 @@ export default function Maintenance() {
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Action Taken</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Approval</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Status</th>
+              {showActions && <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
+            {isLoading && <tr><td colSpan={showActions ? 8 : 7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
             {filtered.map((l) => {
               const st = statusMap[l.status] ?? { type: "neutral" as const, label: l.status };
               return (
-                <tr key={l.id} className="hover:bg-muted/30 cursor-pointer">
+                <tr key={l.id} className="hover:bg-muted/30">
                   <td className="px-4 py-2 font-medium">{(l as any).equipment?.name ?? "—"}</td>
                   <td className="px-4 py-2">{l.maintenance_date}</td>
                   <td className="px-4 py-2 capitalize">{l.maintenance_type}</td>
@@ -69,6 +78,11 @@ export default function Maintenance() {
                     <StatusBadge status={l.supervisor_approved ? "success" : "warning"} label={l.supervisor_approved ? "Approved" : "Pending"} />
                   </td>
                   <td className="px-4 py-2"><StatusBadge status={st.type} label={st.label} /></td>
+                  {showActions && (
+                    <td className="px-4 py-2 text-right">
+                      <RowActions table="maintenance_logs" id={l.id} invalidateKey="maintenance_logs" canEdit={canEdit} canDelete={canDelete} onEdit={() => openEdit(l)} itemLabel="maintenance log" />
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -76,7 +90,7 @@ export default function Maintenance() {
         </table>
         {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No maintenance logs found.</div>}
       </div>
-      <MaintenanceDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <MaintenanceDialog open={dialogOpen} onOpenChange={setDialogOpen} editRecord={editRecord} />
     </div>
   );
 }

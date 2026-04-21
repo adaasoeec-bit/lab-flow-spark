@@ -5,20 +5,28 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, Download } from "lucide-react";
 import { useLabSessions } from "@/hooks/useSupabaseQuery";
 import { LabSessionDialog } from "@/components/dialogs/LabSessionDialog";
+import { RowActions } from "@/components/RowActions";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function LabSessions() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editRecord, setEditRecord] = useState<any | null>(null);
   const { data: sessions, isLoading } = useLabSessions();
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("lab_sessions.create");
+  const canEdit = hasPermission("lab_sessions.edit");
+  const canDelete = hasPermission("lab_sessions.delete");
+  const showActions = canEdit || canDelete;
 
   const filtered = (sessions ?? []).filter(
     (s) =>
       s.course_name.toLowerCase().includes(search.toLowerCase()) ||
       ((s as any).laboratories?.name ?? "").toLowerCase().includes(search.toLowerCase())
   );
+
+  const openAdd = () => { setEditRecord(null); setDialogOpen(true); };
+  const openEdit = (record: any) => { setEditRecord(record); setDialogOpen(true); };
 
   return (
     <div className="space-y-4">
@@ -27,7 +35,7 @@ export default function LabSessions() {
           <h1 className="text-xl font-bold">Laboratory Sessions</h1>
           <p className="text-sm text-muted-foreground mt-1">Session usage logbook</p>
         </div>
-        {canCreate && <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Session</Button>}
+        {canCreate && <Button size="sm" onClick={openAdd}><Plus className="mr-2 h-4 w-4" /> New Session</Button>}
       </div>
 
       <div className="flex items-center gap-2">
@@ -49,12 +57,13 @@ export default function LabSessions() {
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Users</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Time</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Status</th>
+              {showActions && <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
+            {isLoading && <tr><td colSpan={showActions ? 8 : 7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
             {filtered.map((s) => (
-              <tr key={s.id} className="hover:bg-muted/30 cursor-pointer">
+              <tr key={s.id} className="hover:bg-muted/30">
                 <td className="px-4 py-2 font-mono text-xs">{s.date}</td>
                 <td className="px-4 py-2">{(s as any).laboratories?.name ?? "—"}</td>
                 <td className="px-4 py-2 font-medium">{s.course_name}</td>
@@ -64,6 +73,11 @@ export default function LabSessions() {
                 <td className="px-4 py-2">
                   <StatusBadge status={s.instructor_confirmed ? "success" : "neutral"} label={s.instructor_confirmed ? "Confirmed" : "Pending"} />
                 </td>
+                {showActions && (
+                  <td className="px-4 py-2 text-right">
+                    <RowActions table="lab_sessions" id={s.id} invalidateKey="lab_sessions" canEdit={canEdit} canDelete={canDelete} onEdit={() => openEdit(s)} itemLabel="session" />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -72,7 +86,7 @@ export default function LabSessions() {
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">No sessions found.</div>
         )}
       </div>
-      <LabSessionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <LabSessionDialog open={dialogOpen} onOpenChange={setDialogOpen} editRecord={editRecord} />
     </div>
   );
 }

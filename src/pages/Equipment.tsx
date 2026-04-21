@@ -6,6 +6,7 @@ import { Plus, Search } from "lucide-react";
 import { useEquipment, useLaboratories } from "@/hooks/useSupabaseQuery";
 import { EquipmentDialog } from "@/components/dialogs/EquipmentDialog";
 import { CsvImportButton } from "@/components/CsvImportButton";
+import { RowActions } from "@/components/RowActions";
 import { useAuth } from "@/contexts/AuthContext";
 
 const statusMap: Record<string, { type: "success" | "warning" | "danger" | "neutral"; label: string }> = {
@@ -18,10 +19,14 @@ const statusMap: Record<string, { type: "success" | "warning" | "danger" | "neut
 export default function Equipment() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editRecord, setEditRecord] = useState<any | null>(null);
   const { data: equipment, isLoading } = useEquipment();
   const { data: laboratories } = useLaboratories();
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("equipment.create");
+  const canEdit = hasPermission("equipment.edit");
+  const canDelete = hasPermission("equipment.delete");
+  const showActions = canEdit || canDelete;
 
   const filtered = (equipment ?? []).filter(
     (e) =>
@@ -29,6 +34,9 @@ export default function Equipment() {
       (e.category ?? "").toLowerCase().includes(search.toLowerCase()) ||
       ((e as any).laboratories?.name ?? "").toLowerCase().includes(search.toLowerCase())
   );
+
+  const openAdd = () => { setEditRecord(null); setDialogOpen(true); };
+  const openEdit = (record: any) => { setEditRecord(record); setDialogOpen(true); };
 
   return (
     <div className="space-y-4">
@@ -76,7 +84,7 @@ export default function Equipment() {
                 };
               }}
             />
-            <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Add Equipment</Button>
+            <Button size="sm" onClick={openAdd}><Plus className="mr-2 h-4 w-4" /> Add Equipment</Button>
           </div>
         )}
       </div>
@@ -98,14 +106,15 @@ export default function Equipment() {
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Serial No.</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Next Calibration</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Status</th>
+              {showActions && <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
+            {isLoading && <tr><td colSpan={showActions ? 7 : 6} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
             {filtered.map((e) => {
               const st = statusMap[e.status] ?? { type: "neutral" as const, label: e.status };
               return (
-                <tr key={e.id} className="hover:bg-muted/30 cursor-pointer">
+                <tr key={e.id} className="hover:bg-muted/30">
                   <td className="px-4 py-2 font-medium">{e.name}</td>
                   <td className="px-4 py-2">{e.category ?? "—"}</td>
                   <td className="px-4 py-2">{(e as any).laboratories?.name ?? "—"}</td>
@@ -116,6 +125,11 @@ export default function Equipment() {
                     ) : "—"}
                   </td>
                   <td className="px-4 py-2"><StatusBadge status={st.type} label={st.label} /></td>
+                  {showActions && (
+                    <td className="px-4 py-2 text-right">
+                      <RowActions table="equipment" id={e.id} invalidateKey="equipment" canEdit={canEdit} canDelete={canDelete} onEdit={() => openEdit(e)} itemLabel="equipment" />
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -123,7 +137,7 @@ export default function Equipment() {
         </table>
         {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No equipment found.</div>}
       </div>
-      <EquipmentDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <EquipmentDialog open={dialogOpen} onOpenChange={setDialogOpen} editRecord={editRecord} />
     </div>
   );
 }
