@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,20 +9,40 @@ import { useLaboratories } from "@/hooks/useSupabaseQuery";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-interface Props { open: boolean; onOpenChange: (open: boolean) => void; }
+interface Props { open: boolean; onOpenChange: (open: boolean) => void; editRecord?: any | null; }
 
-export function ConsumableDialog({ open, onOpenChange }: Props) {
+const EMPTY = {
+  name: "",
+  unit: "pcs",
+  quantity_received: 0,
+  quantity_issued: 0,
+  laboratory_id: "",
+  issued_to: "",
+};
+
+export function ConsumableDialog({ open, onOpenChange, editRecord }: Props) {
   const queryClient = useQueryClient();
   const { data: labs } = useLaboratories();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    unit: "pcs",
-    quantity_received: 0,
-    quantity_issued: 0,
-    laboratory_id: "",
-    issued_to: "",
-  });
+  const [form, setForm] = useState(EMPTY);
+  const isEdit = !!editRecord;
+
+  useEffect(() => {
+    if (open) {
+      if (editRecord) {
+        setForm({
+          name: editRecord.name ?? "",
+          unit: editRecord.unit ?? "pcs",
+          quantity_received: editRecord.quantity_received ?? 0,
+          quantity_issued: editRecord.quantity_issued ?? 0,
+          laboratory_id: editRecord.laboratory_id ?? "",
+          issued_to: editRecord.issued_to ?? "",
+        });
+      } else {
+        setForm(EMPTY);
+      }
+    }
+  }, [open, editRecord]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +50,7 @@ export function ConsumableDialog({ open, onOpenChange }: Props) {
     setLoading(true);
     const qr = Number(form.quantity_received);
     const qi = Number(form.quantity_issued);
-    const { error } = await supabase.from("consumables").insert({
+    const payload = {
       name: form.name,
       unit: form.unit,
       quantity_received: qr,
@@ -38,10 +58,13 @@ export function ConsumableDialog({ open, onOpenChange }: Props) {
       balance: qr - qi,
       laboratory_id: form.laboratory_id || null,
       issued_to: form.issued_to || null,
-    });
+    };
+    const { error } = isEdit
+      ? await supabase.from("consumables").update(payload).eq("id", editRecord.id)
+      : await supabase.from("consumables").insert(payload);
     setLoading(false);
     if (error) return toast.error(error.message);
-    toast.success("Consumable added");
+    toast.success(isEdit ? "Consumable updated" : "Consumable added");
     queryClient.invalidateQueries({ queryKey: ["consumables"] });
     onOpenChange(false);
   };
@@ -49,7 +72,7 @@ export function ConsumableDialog({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Add Consumable Material</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isEdit ? "Edit Consumable" : "Add Consumable Material"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -82,7 +105,7 @@ export function ConsumableDialog({ open, onOpenChange }: Props) {
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Add Material"}</Button>
+            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Material"}</Button>
           </div>
         </form>
       </DialogContent>

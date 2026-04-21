@@ -6,6 +6,7 @@ import { Plus, Search, AlertTriangle } from "lucide-react";
 import { useConsumables, useLaboratories } from "@/hooks/useSupabaseQuery";
 import { ConsumableDialog } from "@/components/dialogs/ConsumableDialog";
 import { CsvImportButton } from "@/components/CsvImportButton";
+import { RowActions } from "@/components/RowActions";
 import { useAuth } from "@/contexts/AuthContext";
 
 const LOW_STOCK_THRESHOLD = 10;
@@ -13,12 +14,19 @@ const LOW_STOCK_THRESHOLD = 10;
 export default function Consumables() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editRecord, setEditRecord] = useState<any | null>(null);
   const { data: consumables, isLoading } = useConsumables();
   const { data: laboratories } = useLaboratories();
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("consumables.create");
+  const canEdit = hasPermission("consumables.edit");
+  const canDelete = hasPermission("consumables.delete");
+  const showActions = canEdit || canDelete;
 
   const filtered = (consumables ?? []).filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
+
+  const openAdd = () => { setEditRecord(null); setDialogOpen(true); };
+  const openEdit = (record: any) => { setEditRecord(record); setDialogOpen(true); };
 
   return (
     <div className="space-y-4">
@@ -59,7 +67,7 @@ export default function Consumables() {
                 };
               }}
             />
-            <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Add Material</Button>
+            <Button size="sm" onClick={openAdd}><Plus className="mr-2 h-4 w-4" /> Add Material</Button>
           </div>
         )}
       </div>
@@ -80,14 +88,15 @@ export default function Consumables() {
               <th className="px-4 py-2 text-right font-medium text-muted-foreground">Balance</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Laboratory</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Issued To</th>
+              {showActions && <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
+            {isLoading && <tr><td colSpan={showActions ? 8 : 7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
             {filtered.map((c) => {
               const bal = c.balance ?? 0;
               return (
-                <tr key={c.id} className="hover:bg-muted/30 cursor-pointer">
+                <tr key={c.id} className="hover:bg-muted/30">
                   <td className="px-4 py-2 font-medium flex items-center gap-2">
                     {c.name}
                     {bal <= LOW_STOCK_THRESHOLD && <AlertTriangle className="h-3 w-3 text-warning" />}
@@ -100,6 +109,11 @@ export default function Consumables() {
                   </td>
                   <td className="px-4 py-2">{(c as any).laboratories?.name ?? "—"}</td>
                   <td className="px-4 py-2">{c.issued_to ?? "—"}</td>
+                  {showActions && (
+                    <td className="px-4 py-2 text-right">
+                      <RowActions table="consumables" id={c.id} invalidateKey="consumables" canEdit={canEdit} canDelete={canDelete} onEdit={() => openEdit(c)} itemLabel="consumable" />
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -107,7 +121,7 @@ export default function Consumables() {
         </table>
         {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No consumables found.</div>}
       </div>
-      <ConsumableDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <ConsumableDialog open={dialogOpen} onOpenChange={setDialogOpen} editRecord={editRecord} />
     </div>
   );
 }

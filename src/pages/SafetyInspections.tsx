@@ -5,18 +5,26 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { useSafetyInspections } from "@/hooks/useSupabaseQuery";
 import { SafetyInspectionDialog } from "@/components/dialogs/SafetyInspectionDialog";
+import { RowActions } from "@/components/RowActions";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function SafetyInspections() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editRecord, setEditRecord] = useState<any | null>(null);
   const { data: inspections, isLoading } = useSafetyInspections();
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("safety.create");
+  const canEdit = hasPermission("safety.edit");
+  const canDelete = hasPermission("safety.delete");
+  const showActions = canEdit || canDelete;
 
   const filtered = (inspections ?? []).filter((i) =>
     ((i as any).laboratories?.name ?? "").toLowerCase().includes(search.toLowerCase())
   );
+
+  const openAdd = () => { setEditRecord(null); setDialogOpen(true); };
+  const openEdit = (record: any) => { setEditRecord(record); setDialogOpen(true); };
 
   return (
     <div className="space-y-4">
@@ -25,7 +33,7 @@ export default function SafetyInspections() {
           <h1 className="text-xl font-bold">Safety Inspections</h1>
           <p className="text-sm text-muted-foreground mt-1">Laboratory safety compliance records</p>
         </div>
-        {canCreate && <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Inspection</Button>}
+        {canCreate && <Button size="sm" onClick={openAdd}><Plus className="mr-2 h-4 w-4" /> New Inspection</Button>}
       </div>
 
       <div className="relative max-w-sm">
@@ -45,12 +53,13 @@ export default function SafetyInspections() {
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Exit</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Hazards</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Follow-Up</th>
+              {showActions && <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {isLoading && <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
+            {isLoading && <tr><td colSpan={showActions ? 9 : 8} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
             {filtered.map((i) => (
-              <tr key={i.id} className="hover:bg-muted/30 cursor-pointer">
+              <tr key={i.id} className="hover:bg-muted/30">
                 <td className="px-4 py-2 font-mono text-xs">{i.inspection_date}</td>
                 <td className="px-4 py-2 font-medium">{(i as any).laboratories?.name ?? "—"}</td>
                 <td className="px-4 py-2"><StatusBadge status={i.fire_safety ? "success" : "danger"} label={i.fire_safety ? "Pass" : "Fail"} /></td>
@@ -59,13 +68,18 @@ export default function SafetyInspections() {
                 <td className="px-4 py-2"><StatusBadge status={i.emergency_exit ? "success" : "danger"} label={i.emergency_exit ? "Pass" : "Fail"} /></td>
                 <td className="px-4 py-2 max-w-40 truncate">{i.hazards_identified ?? "None"}</td>
                 <td className="px-4 py-2 font-mono text-xs">{i.follow_up_date ?? "—"}</td>
+                {showActions && (
+                  <td className="px-4 py-2 text-right">
+                    <RowActions table="safety_inspections" id={i.id} invalidateKey="safety_inspections" canEdit={canEdit} canDelete={canDelete} onEdit={() => openEdit(i)} itemLabel="inspection" />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
         {!isLoading && filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-muted-foreground">No inspections found.</div>}
       </div>
-      <SafetyInspectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <SafetyInspectionDialog open={dialogOpen} onOpenChange={setDialogOpen} editRecord={editRecord} />
     </div>
   );
 }
