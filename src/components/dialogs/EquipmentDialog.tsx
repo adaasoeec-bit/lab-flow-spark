@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,31 +16,55 @@ type EquipmentStatus = Database["public"]["Enums"]["equipment_status"];
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editRecord?: any | null;
 }
 
-export function EquipmentDialog({ open, onOpenChange }: Props) {
+const EMPTY = {
+  name: "",
+  category: "",
+  model: "",
+  serial_number: "",
+  laboratory_id: "",
+  status: "operational" as EquipmentStatus,
+  installation_date: "",
+  last_calibration: "",
+  next_calibration: "",
+  remarks: "",
+};
+
+export function EquipmentDialog({ open, onOpenChange, editRecord }: Props) {
   const queryClient = useQueryClient();
   const { data: labs } = useLaboratories();
   const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState(EMPTY);
+  const isEdit = !!editRecord;
 
-  const [form, setForm] = useState({
-    name: "",
-    category: "",
-    model: "",
-    serial_number: "",
-    laboratory_id: "",
-    status: "operational" as EquipmentStatus,
-    installation_date: "",
-    last_calibration: "",
-    next_calibration: "",
-    remarks: "",
-  });
+  useEffect(() => {
+    if (open) {
+      if (editRecord) {
+        setForm({
+          name: editRecord.name ?? "",
+          category: editRecord.category ?? "",
+          model: editRecord.model ?? "",
+          serial_number: editRecord.serial_number ?? "",
+          laboratory_id: editRecord.laboratory_id ?? "",
+          status: editRecord.status ?? "operational",
+          installation_date: editRecord.installation_date ?? "",
+          last_calibration: editRecord.last_calibration ?? "",
+          next_calibration: editRecord.next_calibration ?? "",
+          remarks: editRecord.remarks ?? "",
+        });
+      } else {
+        setForm(EMPTY);
+      }
+    }
+  }, [open, editRecord]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name) return toast.error("Equipment name is required");
     setLoading(true);
-    const { error } = await supabase.from("equipment").insert({
+    const payload = {
       name: form.name,
       category: form.category || null,
       model: form.model || null,
@@ -51,10 +75,13 @@ export function EquipmentDialog({ open, onOpenChange }: Props) {
       last_calibration: form.last_calibration || null,
       next_calibration: form.next_calibration || null,
       remarks: form.remarks || null,
-    });
+    };
+    const { error } = isEdit
+      ? await supabase.from("equipment").update(payload).eq("id", editRecord.id)
+      : await supabase.from("equipment").insert(payload);
     setLoading(false);
     if (error) return toast.error(error.message);
-    toast.success("Equipment added");
+    toast.success(isEdit ? "Equipment updated" : "Equipment added");
     queryClient.invalidateQueries({ queryKey: ["equipment"] });
     onOpenChange(false);
   };
@@ -62,7 +89,7 @@ export function EquipmentDialog({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Add Equipment</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isEdit ? "Edit Equipment" : "Add Equipment"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -119,7 +146,7 @@ export function EquipmentDialog({ open, onOpenChange }: Props) {
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Add Equipment"}</Button>
+            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Equipment"}</Button>
           </div>
         </form>
       </DialogContent>

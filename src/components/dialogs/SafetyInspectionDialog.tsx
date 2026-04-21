@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,29 +12,52 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-interface Props { open: boolean; onOpenChange: (open: boolean) => void; }
+interface Props { open: boolean; onOpenChange: (open: boolean) => void; editRecord?: any | null; }
 
-export function SafetyInspectionDialog({ open, onOpenChange }: Props) {
+const EMPTY = {
+  laboratory_id: "",
+  inspection_date: new Date().toISOString().split("T")[0],
+  fire_safety: false,
+  electrical_safety: false,
+  ppe_status: false,
+  emergency_exit: false,
+  hazards_identified: "",
+  corrective_action: "",
+  follow_up_date: "",
+};
+
+export function SafetyInspectionDialog({ open, onOpenChange, editRecord }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: labs } = useLaboratories();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    laboratory_id: "",
-    inspection_date: new Date().toISOString().split("T")[0],
-    fire_safety: false,
-    electrical_safety: false,
-    ppe_status: false,
-    emergency_exit: false,
-    hazards_identified: "",
-    corrective_action: "",
-    follow_up_date: "",
-  });
+  const [form, setForm] = useState(EMPTY);
+  const isEdit = !!editRecord;
+
+  useEffect(() => {
+    if (open) {
+      if (editRecord) {
+        setForm({
+          laboratory_id: editRecord.laboratory_id ?? "",
+          inspection_date: editRecord.inspection_date ?? new Date().toISOString().split("T")[0],
+          fire_safety: editRecord.fire_safety ?? false,
+          electrical_safety: editRecord.electrical_safety ?? false,
+          ppe_status: editRecord.ppe_status ?? false,
+          emergency_exit: editRecord.emergency_exit ?? false,
+          hazards_identified: editRecord.hazards_identified ?? "",
+          corrective_action: editRecord.corrective_action ?? "",
+          follow_up_date: editRecord.follow_up_date ?? "",
+        });
+      } else {
+        setForm(EMPTY);
+      }
+    }
+  }, [open, editRecord]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.from("safety_inspections").insert({
+    const payload: any = {
       laboratory_id: form.laboratory_id || null,
       inspection_date: form.inspection_date,
       fire_safety: form.fire_safety,
@@ -44,11 +67,14 @@ export function SafetyInspectionDialog({ open, onOpenChange }: Props) {
       hazards_identified: form.hazards_identified || null,
       corrective_action: form.corrective_action || null,
       follow_up_date: form.follow_up_date || null,
-      inspector_id: user?.id,
-    });
+    };
+    if (!isEdit) payload.inspector_id = user?.id;
+    const { error } = isEdit
+      ? await supabase.from("safety_inspections").update(payload).eq("id", editRecord.id)
+      : await supabase.from("safety_inspections").insert(payload);
     setLoading(false);
     if (error) return toast.error(error.message);
-    toast.success("Inspection recorded");
+    toast.success(isEdit ? "Inspection updated" : "Inspection recorded");
     queryClient.invalidateQueries({ queryKey: ["safety_inspections"] });
     onOpenChange(false);
   };
@@ -58,7 +84,7 @@ export function SafetyInspectionDialog({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>New Safety Inspection</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isEdit ? "Edit Safety Inspection" : "New Safety Inspection"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -86,7 +112,7 @@ export function SafetyInspectionDialog({ open, onOpenChange }: Props) {
           <div className="space-y-1.5"><Label>Follow-Up Date</Label><Input type="date" value={form.follow_up_date} onChange={e => setForm(f => ({ ...f, follow_up_date: e.target.value }))} /></div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Save Inspection"}</Button>
+            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save Changes" : "Save Inspection"}</Button>
           </div>
         </form>
       </DialogContent>
