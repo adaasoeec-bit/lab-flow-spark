@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, FlaskConical, Microscope, Wrench, ShieldCheck,
-  Package, ClipboardList, FileBarChart, Users, Settings, LogOut, Building2, UserCircle, Shield,
+  ClipboardList, FileBarChart, Users, Settings, LogOut, Building2, UserCircle, Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
