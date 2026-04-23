@@ -59,9 +59,18 @@ export default function CollegesDepartments() {
   const [labDeptId, setLabDeptId] = useState("");
   const [savingLab, setSavingLab] = useState(false);
 
+  // Store dialog
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [storeEditId, setStoreEditId] = useState<string | null>(null);
+  const [storeName, setStoreName] = useState("");
+  const [storeLocation, setStoreLocation] = useState("");
+  const [storeDeptId, setStoreDeptId] = useState("");
+  const [savingStore, setSavingStore] = useState(false);
+
   const resetCollege = () => { setCollegeEditId(null); setCollegeName(""); setCollegeAbbr(""); };
   const resetDept = () => { setDeptEditId(null); setDeptName(""); setDeptAbbr(""); setDeptCollegeId(""); };
   const resetLab = () => { setLabEditId(null); setLabName(""); setLabLocation(""); setLabCapacity(""); setLabDeptId(""); };
+  const resetStore = () => { setStoreEditId(null); setStoreName(""); setStoreLocation(""); setStoreDeptId(""); };
 
   const openNewCollege = () => { resetCollege(); setCollegeOpen(true); };
   const openEditCollege = (c: any) => {
