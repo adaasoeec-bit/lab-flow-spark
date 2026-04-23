@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FlaskConical, Microscope, Wrench, ShieldCheck,
+  LayoutDashboard, Microscope, Wrench, ShieldCheck,
   ClipboardList, FileBarChart, Users, Settings, LogOut, Building2, UserCircle, Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -14,11 +14,10 @@ import astuLogo from "@/assets/astu-logo.png";
 
 const mainNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, permission: "dashboard.view" },
-  { title: "Lab Sessions", url: "/sessions", icon: FlaskConical, permission: "lab_sessions.view" },
-  { title: "Equipment & Consumables", url: "/equipment", icon: Microscope, permission: "equipment.view" },
+  { title: "Logbook", url: "/logbook", icon: ClipboardList, permission: "lab_sessions.view", altPermission: "activities.view" },
+  { title: "Equipment", url: "/equipment", icon: Microscope, permission: "equipment.view" },
   { title: "Maintenance", url: "/maintenance", icon: Wrench, permission: "maintenance.view" },
   { title: "Safety Inspections", url: "/safety", icon: ShieldCheck, permission: "safety.view" },
-  { title: "Technician Activities", url: "/activities", icon: ClipboardList, permission: "activities.view" },
 ];
 
 const adminNav = [
@@ -36,7 +35,7 @@ export function AppSidebar() {
   const { profile, role, signOut, hasPermission } = useAuth();
   const isActive = (path: string) => location.pathname === path;
 
-  const visibleMain = mainNav.filter((n) => hasPermission(n.permission));
+  const visibleMain = mainNav.filter((n: any) => hasPermission(n.permission) || (n.altPermission && hasPermission(n.altPermission)));
   const visibleAdmin = adminNav.filter((n) => hasPermission(n.permission));
 
   return (

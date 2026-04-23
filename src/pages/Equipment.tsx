@@ -53,7 +53,7 @@ export default function Equipment() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">Equipment & Consumables</h1>
+          <h1 className="text-xl font-bold">Equipment</h1>
           <p className="text-sm text-muted-foreground mt-1">Unified inventory of fixed equipment and consumables</p>
         </div>
         {canCreate && (

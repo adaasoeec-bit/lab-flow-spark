@@ -128,10 +128,6 @@ export function EquipmentDialog({ open, onOpenChange, editRecord, defaultType = 
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label>Category</Label>
-              <Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
               <Label>Model</Label>
               <Input value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} />
             </div>
