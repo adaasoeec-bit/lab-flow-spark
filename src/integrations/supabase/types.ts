@@ -559,6 +559,30 @@ export type Database = {
           },
         ]
       }
+      stores: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          id: string
+          location: string | null
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          location?: string | null
+          name: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
       technician_activities: {
         Row: {
           activity_description: string

@@ -5,8 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Pencil, Building2, GraduationCap, FlaskConical } from "lucide-react";
-import { useDepartments, useColleges, useLaboratories } from "@/hooks/useSupabaseQuery";
+import { Plus, Trash2, Pencil, Building2, GraduationCap, FlaskConical, Warehouse } from "lucide-react";
+import { useDepartments, useColleges, useLaboratories, useStores } from "@/hooks/useSupabaseQuery";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ export default function CollegesDepartments() {
   const { data: colleges, isLoading: loadingColleges } = useColleges();
   const { data: departments, isLoading: loadingDepts } = useDepartments();
   const { data: laboratories, isLoading: loadingLabs } = useLaboratories();
+  const { data: stores, isLoading: loadingStores } = useStores();
   const { hasPermission } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -30,6 +31,9 @@ export default function CollegesDepartments() {
   const canCreateLab = hasPermission("labs.create");
   const canEditLab = hasPermission("labs.edit");
   const canDeleteLab = hasPermission("labs.delete");
+  const canCreateStore = hasPermission("stores.create");
+  const canEditStore = hasPermission("stores.edit");
+  const canDeleteStore = hasPermission("stores.delete");
 
   // College dialog
   const [collegeOpen, setCollegeOpen] = useState(false);
@@ -55,9 +59,18 @@ export default function CollegesDepartments() {
   const [labDeptId, setLabDeptId] = useState("");
   const [savingLab, setSavingLab] = useState(false);
 
+  // Store dialog
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [storeEditId, setStoreEditId] = useState<string | null>(null);
+  const [storeName, setStoreName] = useState("");
+  const [storeLocation, setStoreLocation] = useState("");
+  const [storeDeptId, setStoreDeptId] = useState("");
+  const [savingStore, setSavingStore] = useState(false);
+
   const resetCollege = () => { setCollegeEditId(null); setCollegeName(""); setCollegeAbbr(""); };
   const resetDept = () => { setDeptEditId(null); setDeptName(""); setDeptAbbr(""); setDeptCollegeId(""); };
   const resetLab = () => { setLabEditId(null); setLabName(""); setLabLocation(""); setLabCapacity(""); setLabDeptId(""); };
+  const resetStore = () => { setStoreEditId(null); setStoreName(""); setStoreLocation(""); setStoreDeptId(""); };
 
   const openNewCollege = () => { resetCollege(); setCollegeOpen(true); };
   const openEditCollege = (c: any) => {
@@ -170,20 +183,59 @@ export default function CollegesDepartments() {
     else { toast({ title: "Laboratory deleted" }); qc.invalidateQueries({ queryKey: ["laboratories"] }); }
   };
 
+  const openNewStore = () => { resetStore(); setStoreOpen(true); };
+  const openEditStore = (s: any) => {
+    setStoreEditId(s.id);
+    setStoreName(s.name ?? "");
+    setStoreLocation(s.location ?? "");
+    setStoreDeptId(s.department_id ?? "");
+    setStoreOpen(true);
+  };
+
+  const handleSaveStore = async () => {
+    if (!storeName) return;
+    setSavingStore(true);
+    const payload = {
+      name: storeName,
+      location: storeLocation || null,
+      department_id: storeDeptId || null,
+    };
+    const { error } = storeEditId
+      ? await supabase.from("stores" as any).update(payload as any).eq("id", storeEditId)
+      : await supabase.from("stores" as any).insert(payload as any);
+    setSavingStore(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } else {
+      toast({ title: storeEditId ? "Store updated" : "Store added" });
+      setStoreOpen(false);
+      resetStore();
+      qc.invalidateQueries({ queryKey: ["stores"] });
+    }
+  };
+
+  const handleDeleteStore = async (id: string) => {
+    if (!confirm("Delete this store?")) return;
+    const { error } = await supabase.from("stores" as any).delete().eq("id", id);
+    if (error) toast({ variant: "destructive", title: "Error", description: error.message });
+    else { toast({ title: "Store deleted" }); qc.invalidateQueries({ queryKey: ["stores"] }); }
+  };
+
   const collegeMap = new Map((colleges ?? []).map((c: any) => [c.id, c.name]));
   const showCollegeActions = canEditCollege || canDeleteCollege;
   const showDeptActions = canEditDept || canDeleteDept;
   const showLabActions = canEditLab || canDeleteLab;
+  const showStoreActions = canEditStore || canDeleteStore;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold">Colleges, Departments & Laboratories</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage organizational structure and lab facilities</p>
+        <h1 className="text-xl font-bold">Colleges, Departments, Laboratories & Stores</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage organizational structure, lab facilities and stores</p>
       </div>
 
       <Tabs defaultValue="colleges" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="colleges" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Colleges
@@ -195,6 +247,10 @@ export default function CollegesDepartments() {
           <TabsTrigger value="laboratories" className="flex items-center gap-2">
             <FlaskConical className="h-4 w-4" />
             Laboratories
+          </TabsTrigger>
+          <TabsTrigger value="stores" className="flex items-center gap-2">
+            <Warehouse className="h-4 w-4" />
+            Stores
           </TabsTrigger>
         </TabsList>
 
@@ -390,6 +446,65 @@ export default function CollegesDepartments() {
                 </div>
               </div>
               <DialogFooter><Button onClick={handleSaveLab} disabled={savingLab}>{savingLab ? "Saving…" : labEditId ? "Save Changes" : "Add Laboratory"}</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        {/* Stores Tab */}
+        <TabsContent value="stores" className="space-y-3 mt-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-mono text-sm font-semibold">Stores</h2>
+            {canCreateStore && (
+              <Button size="sm" onClick={openNewStore}><Plus className="mr-2 h-4 w-4" /> Add Store</Button>
+            )}
+          </div>
+          <div className="rounded-md border border-border bg-card overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-border bg-muted/50">
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Location</th>
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Department</th>
+                {showStoreActions && <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>}
+              </tr></thead>
+              <tbody className="divide-y divide-border">
+                {loadingStores && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>}
+                {(stores ?? []).map((s: any) => (
+                  <tr key={s.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-2 font-medium">{s.name}</td>
+                    <td className="px-4 py-2 text-sm">{s.location ?? "—"}</td>
+                    <td className="px-4 py-2 text-sm">{s.departments?.name ?? "—"}</td>
+                    {showStoreActions && <td className="px-4 py-2 text-right">
+                      {canEditStore && (
+                        <Button variant="ghost" size="icon" onClick={() => openEditStore(s)}><Pencil className="h-4 w-4" /></Button>
+                      )}
+                      {canDeleteStore && (
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteStore(s.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                      )}
+                    </td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!loadingStores && (stores ?? []).length === 0 && <div className="px-4 py-6 text-center text-sm text-muted-foreground">No stores added yet.</div>}
+          </div>
+
+          <Dialog open={storeOpen} onOpenChange={(o) => { setStoreOpen(o); if (!o) resetStore(); }}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>{storeEditId ? "Edit Store" : "Add Store"}</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2"><Label>Name</Label><Input value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="e.g. Central Chemistry Store" /></div>
+                <div className="space-y-2"><Label>Location</Label><Input value={storeLocation} onChange={(e) => setStoreLocation(e.target.value)} placeholder="e.g. Building B, Room 105" /></div>
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Select value={storeDeptId} onValueChange={setStoreDeptId}>
+                    <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                    <SelectContent>
+                      {(departments ?? []).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter><Button onClick={handleSaveStore} disabled={savingStore}>{savingStore ? "Saving…" : storeEditId ? "Save Changes" : "Add Store"}</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         </TabsContent>

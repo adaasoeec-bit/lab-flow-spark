@@ -26,6 +26,20 @@ export function useLaboratories() {
   });
 }
 
+export function useStores() {
+  return useQuery({
+    queryKey: ["stores"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stores" as any)
+        .select("*, departments(name, abbreviation)")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useDepartments() {
   return useQuery({
     queryKey: ["departments"],
