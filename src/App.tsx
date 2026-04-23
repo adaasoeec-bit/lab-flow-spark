@@ -10,7 +10,7 @@ import LabSessions from "@/pages/LabSessions";
 import Equipment from "@/pages/Equipment";
 import Maintenance from "@/pages/Maintenance";
 import SafetyInspections from "@/pages/SafetyInspections";
-import Consumables from "@/pages/Consumables";
+
 import TechnicianActivities from "@/pages/TechnicianActivities";
 import Reports from "@/pages/Reports";
 import UserManagement from "@/pages/UserManagement";
@@ -48,7 +48,7 @@ function AppRoutes() {
         <Route path="/equipment" element={<Equipment />} />
         <Route path="/maintenance" element={<Maintenance />} />
         <Route path="/safety" element={<SafetyInspections />} />
-        <Route path="/consumables" element={<Consumables />} />
+        <Route path="/consumables" element={<Navigate to="/equipment" replace />} />
         <Route path="/activities" element={<TechnicianActivities />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/users" element={<UserManagement />} />

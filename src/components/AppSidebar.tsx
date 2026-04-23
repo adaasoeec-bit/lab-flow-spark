@@ -15,10 +15,9 @@ import astuLogo from "@/assets/astu-logo.png";
 const mainNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, permission: "dashboard.view" },
   { title: "Lab Sessions", url: "/sessions", icon: FlaskConical, permission: "lab_sessions.view" },
-  { title: "Equipment", url: "/equipment", icon: Microscope, permission: "equipment.view" },
+  { title: "Equipment & Consumables", url: "/equipment", icon: Microscope, permission: "equipment.view" },
   { title: "Maintenance", url: "/maintenance", icon: Wrench, permission: "maintenance.view" },
   { title: "Safety Inspections", url: "/safety", icon: ShieldCheck, permission: "safety.view" },
-  { title: "Consumables", url: "/consumables", icon: Package, permission: "consumables.view" },
   { title: "Technician Activities", url: "/activities", icon: ClipboardList, permission: "activities.view" },
 ];
 
