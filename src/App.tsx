@@ -10,7 +10,7 @@ import LabSessions from "@/pages/LabSessions";
 import Equipment from "@/pages/Equipment";
 import Maintenance from "@/pages/Maintenance";
 import SafetyInspections from "@/pages/SafetyInspections";
-
+import Logbook from "@/pages/Logbook";
 import TechnicianActivities from "@/pages/TechnicianActivities";
 import Reports from "@/pages/Reports";
 import UserManagement from "@/pages/UserManagement";
@@ -44,12 +44,13 @@ function AppRoutes() {
       <Route path="/change-password" element={<ChangePassword />} />
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/sessions" element={<LabSessions />} />
+        <Route path="/logbook" element={<Logbook />} />
+        <Route path="/sessions" element={<Navigate to="/logbook" replace />} />
+        <Route path="/activities" element={<Navigate to="/logbook" replace />} />
         <Route path="/equipment" element={<Equipment />} />
         <Route path="/maintenance" element={<Maintenance />} />
         <Route path="/safety" element={<SafetyInspections />} />
         <Route path="/consumables" element={<Navigate to="/equipment" replace />} />
-        <Route path="/activities" element={<TechnicianActivities />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/users" element={<UserManagement />} />
         <Route path="/roles" element={<RoleManagement />} />
