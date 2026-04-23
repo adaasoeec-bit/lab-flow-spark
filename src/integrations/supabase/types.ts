@@ -181,6 +181,7 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
+          equipment_type: string
           id: string
           installation_date: string | null
           laboratory_id: string | null
@@ -188,14 +189,19 @@ export type Database = {
           model: string | null
           name: string
           next_calibration: string | null
+          quantity: number | null
           remarks: string | null
+          row_number: string | null
           serial_number: string | null
+          shelf: string | null
           status: Database["public"]["Enums"]["equipment_status"]
           technician_id: string | null
+          unit: string | null
         }
         Insert: {
           category?: string | null
           created_at?: string
+          equipment_type?: string
           id?: string
           installation_date?: string | null
           laboratory_id?: string | null
@@ -203,14 +209,19 @@ export type Database = {
           model?: string | null
           name: string
           next_calibration?: string | null
+          quantity?: number | null
           remarks?: string | null
+          row_number?: string | null
           serial_number?: string | null
+          shelf?: string | null
           status?: Database["public"]["Enums"]["equipment_status"]
           technician_id?: string | null
+          unit?: string | null
         }
         Update: {
           category?: string | null
           created_at?: string
+          equipment_type?: string
           id?: string
           installation_date?: string | null
           laboratory_id?: string | null
@@ -218,10 +229,14 @@ export type Database = {
           model?: string | null
           name?: string
           next_calibration?: string | null
+          quantity?: number | null
           remarks?: string | null
+          row_number?: string | null
           serial_number?: string | null
+          shelf?: string | null
           status?: Database["public"]["Enums"]["equipment_status"]
           technician_id?: string | null
+          unit?: string | null
         }
         Relationships: [
           {
