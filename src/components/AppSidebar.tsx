@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FlaskConical, Microscope, Wrench, ShieldCheck,
+  LayoutDashboard, Microscope, Wrench, ShieldCheck,
   ClipboardList, FileBarChart, Users, Settings, LogOut, Building2, UserCircle, Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
