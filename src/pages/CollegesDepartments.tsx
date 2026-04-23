@@ -17,6 +17,7 @@ export default function CollegesDepartments() {
   const { data: colleges, isLoading: loadingColleges } = useColleges();
   const { data: departments, isLoading: loadingDepts } = useDepartments();
   const { data: laboratories, isLoading: loadingLabs } = useLaboratories();
+  const { data: stores, isLoading: loadingStores } = useStores();
   const { hasPermission } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -30,6 +31,9 @@ export default function CollegesDepartments() {
   const canCreateLab = hasPermission("labs.create");
   const canEditLab = hasPermission("labs.edit");
   const canDeleteLab = hasPermission("labs.delete");
+  const canCreateStore = hasPermission("stores.create");
+  const canEditStore = hasPermission("stores.edit");
+  const canDeleteStore = hasPermission("stores.delete");
 
   // College dialog
   const [collegeOpen, setCollegeOpen] = useState(false);
