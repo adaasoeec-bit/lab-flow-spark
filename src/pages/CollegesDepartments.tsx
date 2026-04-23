@@ -449,6 +449,65 @@ export default function CollegesDepartments() {
             </DialogContent>
           </Dialog>
         </TabsContent>
+
+        {/* Stores Tab */}
+        <TabsContent value="stores" className="space-y-3 mt-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-mono text-sm font-semibold">Stores</h2>
+            {canCreateStore && (
+              <Button size="sm" onClick={openNewStore}><Plus className="mr-2 h-4 w-4" /> Add Store</Button>
+            )}
+          </div>
+          <div className="rounded-md border border-border bg-card overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-border bg-muted/50">
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Location</th>
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Department</th>
+                {showStoreActions && <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>}
+              </tr></thead>
+              <tbody className="divide-y divide-border">
+                {loadingStores && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>}
+                {(stores ?? []).map((s: any) => (
+                  <tr key={s.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-2 font-medium">{s.name}</td>
+                    <td className="px-4 py-2 text-sm">{s.location ?? "—"}</td>
+                    <td className="px-4 py-2 text-sm">{s.departments?.name ?? "—"}</td>
+                    {showStoreActions && <td className="px-4 py-2 text-right">
+                      {canEditStore && (
+                        <Button variant="ghost" size="icon" onClick={() => openEditStore(s)}><Pencil className="h-4 w-4" /></Button>
+                      )}
+                      {canDeleteStore && (
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteStore(s.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                      )}
+                    </td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!loadingStores && (stores ?? []).length === 0 && <div className="px-4 py-6 text-center text-sm text-muted-foreground">No stores added yet.</div>}
+          </div>
+
+          <Dialog open={storeOpen} onOpenChange={(o) => { setStoreOpen(o); if (!o) resetStore(); }}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>{storeEditId ? "Edit Store" : "Add Store"}</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2"><Label>Name</Label><Input value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="e.g. Central Chemistry Store" /></div>
+                <div className="space-y-2"><Label>Location</Label><Input value={storeLocation} onChange={(e) => setStoreLocation(e.target.value)} placeholder="e.g. Building B, Room 105" /></div>
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Select value={storeDeptId} onValueChange={setStoreDeptId}>
+                    <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                    <SelectContent>
+                      {(departments ?? []).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter><Button onClick={handleSaveStore} disabled={savingStore}>{savingStore ? "Saving…" : storeEditId ? "Save Changes" : "Add Store"}</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
       </Tabs>
     </div>
   );
