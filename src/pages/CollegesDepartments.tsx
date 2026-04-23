@@ -183,20 +183,59 @@ export default function CollegesDepartments() {
     else { toast({ title: "Laboratory deleted" }); qc.invalidateQueries({ queryKey: ["laboratories"] }); }
   };
 
+  const openNewStore = () => { resetStore(); setStoreOpen(true); };
+  const openEditStore = (s: any) => {
+    setStoreEditId(s.id);
+    setStoreName(s.name ?? "");
+    setStoreLocation(s.location ?? "");
+    setStoreDeptId(s.department_id ?? "");
+    setStoreOpen(true);
+  };
+
+  const handleSaveStore = async () => {
+    if (!storeName) return;
+    setSavingStore(true);
+    const payload = {
+      name: storeName,
+      location: storeLocation || null,
+      department_id: storeDeptId || null,
+    };
+    const { error } = storeEditId
+      ? await supabase.from("stores" as any).update(payload as any).eq("id", storeEditId)
+      : await supabase.from("stores" as any).insert(payload as any);
+    setSavingStore(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } else {
+      toast({ title: storeEditId ? "Store updated" : "Store added" });
+      setStoreOpen(false);
+      resetStore();
+      qc.invalidateQueries({ queryKey: ["stores"] });
+    }
+  };
+
+  const handleDeleteStore = async (id: string) => {
+    if (!confirm("Delete this store?")) return;
+    const { error } = await supabase.from("stores" as any).delete().eq("id", id);
+    if (error) toast({ variant: "destructive", title: "Error", description: error.message });
+    else { toast({ title: "Store deleted" }); qc.invalidateQueries({ queryKey: ["stores"] }); }
+  };
+
   const collegeMap = new Map((colleges ?? []).map((c: any) => [c.id, c.name]));
   const showCollegeActions = canEditCollege || canDeleteCollege;
   const showDeptActions = canEditDept || canDeleteDept;
   const showLabActions = canEditLab || canDeleteLab;
+  const showStoreActions = canEditStore || canDeleteStore;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold">Colleges, Departments & Laboratories</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage organizational structure and lab facilities</p>
+        <h1 className="text-xl font-bold">Colleges, Departments, Laboratories & Stores</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage organizational structure, lab facilities and stores</p>
       </div>
 
       <Tabs defaultValue="colleges" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="colleges" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Colleges
@@ -208,6 +247,10 @@ export default function CollegesDepartments() {
           <TabsTrigger value="laboratories" className="flex items-center gap-2">
             <FlaskConical className="h-4 w-4" />
             Laboratories
+          </TabsTrigger>
+          <TabsTrigger value="stores" className="flex items-center gap-2">
+            <Warehouse className="h-4 w-4" />
+            Stores
           </TabsTrigger>
         </TabsList>
 
