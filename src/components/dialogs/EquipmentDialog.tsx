@@ -225,10 +225,14 @@ export function EquipmentDialog({ open, onOpenChange, editRecord, defaultType = 
             <Label>Remarks</Label>
             <Textarea value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} rows={2} />
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Item"}</Button>
-          </div>
+          </fieldset>
+          <ApprovalFooter
+            loading={loading}
+            isLocked={isLocked}
+            onCancel={() => onOpenChange(false)}
+            onSaveDraft={() => save("draft")}
+            onSubmit={() => save("submit")}
+          />
         </form>
       </DialogContent>
     </Dialog>
