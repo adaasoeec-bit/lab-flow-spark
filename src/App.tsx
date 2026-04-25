@@ -15,6 +15,7 @@ import UserManagement from "@/pages/UserManagement";
 import RoleManagement from "@/pages/RoleManagement";
 import SystemSettings from "@/pages/SystemSettings";
 import CollegesDepartments from "@/pages/CollegesDepartments";
+import Approvals from "@/pages/Approvals";
 import Profile from "@/pages/Profile";
 import Auth from "@/pages/Auth";
 import ChangePassword from "@/pages/ChangePassword";
@@ -49,6 +50,7 @@ function AppRoutes() {
         <Route path="/maintenance" element={<Maintenance />} />
         <Route path="/safety" element={<SafetyInspections />} />
         <Route path="/consumables" element={<Navigate to="/equipment" replace />} />
+        <Route path="/approvals" element={<Approvals />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/users" element={<UserManagement />} />
         <Route path="/roles" element={<RoleManagement />} />

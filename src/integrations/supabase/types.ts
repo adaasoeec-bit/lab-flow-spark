@@ -70,9 +70,13 @@ export type Database = {
       }
       consumables: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           authorized_by: string | null
           balance: number | null
           created_at: string
+          created_by: string | null
           id: string
           issued_to: string | null
           laboratory_id: string | null
@@ -80,13 +84,19 @@ export type Database = {
           name: string
           quantity_issued: number
           quantity_received: number
+          rejection_reason: string | null
+          submitted_at: string | null
           technician_id: string | null
           unit: string
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           authorized_by?: string | null
           balance?: number | null
           created_at?: string
+          created_by?: string | null
           id?: string
           issued_to?: string | null
           laboratory_id?: string | null
@@ -94,13 +104,19 @@ export type Database = {
           name: string
           quantity_issued?: number
           quantity_received?: number
+          rejection_reason?: string | null
+          submitted_at?: string | null
           technician_id?: string | null
           unit?: string
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           authorized_by?: string | null
           balance?: number | null
           created_at?: string
+          created_by?: string | null
           id?: string
           issued_to?: string | null
           laboratory_id?: string | null
@@ -108,6 +124,8 @@ export type Database = {
           name?: string
           quantity_issued?: number
           quantity_received?: number
+          rejection_reason?: string | null
+          submitted_at?: string | null
           technician_id?: string | null
           unit?: string
         }
@@ -179,8 +197,12 @@ export type Database = {
       }
       equipment: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           category: string | null
           created_at: string
+          created_by: string | null
           equipment_type: string
           id: string
           installation_date: string | null
@@ -190,17 +212,23 @@ export type Database = {
           name: string
           next_calibration: string | null
           quantity: number | null
+          rejection_reason: string | null
           remarks: string | null
           row_number: string | null
           serial_number: string | null
           shelf: string | null
           status: Database["public"]["Enums"]["equipment_status"]
+          submitted_at: string | null
           technician_id: string | null
           unit: string | null
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           category?: string | null
           created_at?: string
+          created_by?: string | null
           equipment_type?: string
           id?: string
           installation_date?: string | null
@@ -210,17 +238,23 @@ export type Database = {
           name: string
           next_calibration?: string | null
           quantity?: number | null
+          rejection_reason?: string | null
           remarks?: string | null
           row_number?: string | null
           serial_number?: string | null
           shelf?: string | null
           status?: Database["public"]["Enums"]["equipment_status"]
+          submitted_at?: string | null
           technician_id?: string | null
           unit?: string | null
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           category?: string | null
           created_at?: string
+          created_by?: string | null
           equipment_type?: string
           id?: string
           installation_date?: string | null
@@ -230,11 +264,13 @@ export type Database = {
           name?: string
           next_calibration?: string | null
           quantity?: number | null
+          rejection_reason?: string | null
           remarks?: string | null
           row_number?: string | null
           serial_number?: string | null
           shelf?: string | null
           status?: Database["public"]["Enums"]["equipment_status"]
+          submitted_at?: string | null
           technician_id?: string | null
           unit?: string | null
         }
@@ -251,6 +287,9 @@ export type Database = {
       lab_sessions: {
         Row: {
           activity_type: string
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           course_name: string
           created_at: string
           created_by: string | null
@@ -262,12 +301,17 @@ export type Database = {
           instructor_id: string | null
           laboratory_id: string | null
           number_of_users: number
+          rejection_reason: string | null
           remarks: string | null
           start_time: string
+          submitted_at: string | null
           technician_id: string | null
         }
         Insert: {
           activity_type?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           course_name: string
           created_at?: string
           created_by?: string | null
@@ -279,12 +323,17 @@ export type Database = {
           instructor_id?: string | null
           laboratory_id?: string | null
           number_of_users?: number
+          rejection_reason?: string | null
           remarks?: string | null
           start_time: string
+          submitted_at?: string | null
           technician_id?: string | null
         }
         Update: {
           activity_type?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           course_name?: string
           created_at?: string
           created_by?: string | null
@@ -296,8 +345,10 @@ export type Database = {
           instructor_id?: string | null
           laboratory_id?: string | null
           number_of_users?: number
+          rejection_reason?: string | null
           remarks?: string | null
           start_time?: string
+          submitted_at?: string | null
           technician_id?: string | null
         }
         Relationships: [
@@ -355,42 +406,60 @@ export type Database = {
       maintenance_logs: {
         Row: {
           action_taken: string | null
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
+          created_by: string | null
           equipment_id: string
           id: string
           maintenance_date: string
           maintenance_type: Database["public"]["Enums"]["maintenance_type"]
           problem_reported: string | null
+          rejection_reason: string | null
           remarks: string | null
           status: Database["public"]["Enums"]["maintenance_status"]
+          submitted_at: string | null
           supervisor_approved: boolean
           supervisor_id: string | null
           technician_id: string | null
         }
         Insert: {
           action_taken?: string | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
+          created_by?: string | null
           equipment_id: string
           id?: string
           maintenance_date?: string
           maintenance_type?: Database["public"]["Enums"]["maintenance_type"]
           problem_reported?: string | null
+          rejection_reason?: string | null
           remarks?: string | null
           status?: Database["public"]["Enums"]["maintenance_status"]
+          submitted_at?: string | null
           supervisor_approved?: boolean
           supervisor_id?: string | null
           technician_id?: string | null
         }
         Update: {
           action_taken?: string | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
+          created_by?: string | null
           equipment_id?: string
           id?: string
           maintenance_date?: string
           maintenance_type?: Database["public"]["Enums"]["maintenance_type"]
           problem_reported?: string | null
+          rejection_reason?: string | null
           remarks?: string | null
           status?: Database["public"]["Enums"]["maintenance_status"]
+          submitted_at?: string | null
           supervisor_approved?: boolean
           supervisor_id?: string | null
           technician_id?: string | null
@@ -508,8 +577,12 @@ export type Database = {
       }
       safety_inspections: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           corrective_action: string | null
           created_at: string
+          created_by: string | null
           electrical_safety: boolean
           emergency_exit: boolean
           fire_safety: boolean
@@ -520,10 +593,16 @@ export type Database = {
           inspector_id: string | null
           laboratory_id: string | null
           ppe_status: boolean
+          rejection_reason: string | null
+          submitted_at: string | null
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           corrective_action?: string | null
           created_at?: string
+          created_by?: string | null
           electrical_safety?: boolean
           emergency_exit?: boolean
           fire_safety?: boolean
@@ -534,10 +613,16 @@ export type Database = {
           inspector_id?: string | null
           laboratory_id?: string | null
           ppe_status?: boolean
+          rejection_reason?: string | null
+          submitted_at?: string | null
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           corrective_action?: string | null
           created_at?: string
+          created_by?: string | null
           electrical_safety?: boolean
           emergency_exit?: boolean
           fire_safety?: boolean
@@ -548,6 +633,8 @@ export type Database = {
           inspector_id?: string | null
           laboratory_id?: string | null
           ppe_status?: boolean
+          rejection_reason?: string | null
+          submitted_at?: string | null
         }
         Relationships: [
           {
@@ -586,39 +673,57 @@ export type Database = {
       technician_activities: {
         Row: {
           activity_description: string
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           course_supported: string | null
           created_at: string
+          created_by: string | null
           date: string
           end_time: string | null
           id: string
           laboratory_id: string | null
+          rejection_reason: string | null
           start_time: string
+          submitted_at: string | null
           supervisor_id: string | null
           supervisor_verified: boolean
           technician_id: string
         }
         Insert: {
           activity_description: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           course_supported?: string | null
           created_at?: string
+          created_by?: string | null
           date?: string
           end_time?: string | null
           id?: string
           laboratory_id?: string | null
+          rejection_reason?: string | null
           start_time: string
+          submitted_at?: string | null
           supervisor_id?: string | null
           supervisor_verified?: boolean
           technician_id: string
         }
         Update: {
           activity_description?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           course_supported?: string | null
           created_at?: string
+          created_by?: string | null
           date?: string
           end_time?: string | null
           id?: string
           laboratory_id?: string | null
+          rejection_reason?: string | null
           start_time?: string
+          submitted_at?: string | null
           supervisor_id?: string | null
           supervisor_verified?: boolean
           technician_id?: string
@@ -733,6 +838,8 @@ export type Database = {
         Args: { _permission_code: string; _user_id: string }
         Returns: boolean
       }
+      user_is_ara: { Args: { _user_id: string }; Returns: boolean }
+      user_is_dept_head: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
