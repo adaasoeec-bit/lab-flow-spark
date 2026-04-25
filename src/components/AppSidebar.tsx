@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Microscope, Wrench, ShieldCheck,
-  ClipboardList, FileBarChart, Users, Settings, LogOut, Building2, UserCircle, Shield,
+  ClipboardList, FileBarChart, Users, Settings, LogOut, Building2, UserCircle, Shield, CheckSquare,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -18,6 +18,7 @@ const mainNav = [
   { title: "Equipment", url: "/equipment", icon: Microscope, permission: "equipment.view" },
   { title: "Maintenance", url: "/maintenance", icon: Wrench, permission: "maintenance.view" },
   { title: "Safety Inspections", url: "/safety", icon: ShieldCheck, permission: "safety.view" },
+  { title: "Approvals", url: "/approvals", icon: CheckSquare, permission: "lab_sessions.approve", altPermission: "maintenance.approve" },
 ];
 
 const adminNav = [

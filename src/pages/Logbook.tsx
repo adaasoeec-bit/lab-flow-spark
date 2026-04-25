@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
@@ -7,6 +6,21 @@ import { useLabSessions } from "@/hooks/useSupabaseQuery";
 import { LogbookDialog } from "@/components/dialogs/LogbookDialog";
 import { RowActions } from "@/components/RowActions";
 import { useAuth } from "@/contexts/AuthContext";
+
+const STATUS_STYLES: Record<string, string> = {
+  draft: "bg-muted text-muted-foreground",
+  submitted: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
+  approved: "bg-green-500/15 text-green-700 dark:text-green-400",
+  rejected: "bg-destructive/15 text-destructive",
+};
+
+function StatusPill({ status }: { status: string }) {
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-mono uppercase ${STATUS_STYLES[status] ?? STATUS_STYLES.draft}`}>
+      {status}
+    </span>
+  );
+}
 
 export default function Logbook() {
   const [search, setSearch] = useState("");
@@ -34,7 +48,7 @@ export default function Logbook() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">Logbook</h1>
-          <p className="text-sm text-muted-foreground mt-1">Unified log of lab sessions & technician activities</p>
+          <p className="text-sm text-muted-foreground mt-1">Your lab sessions & technician activities — save as draft, then submit for Department Head approval</p>
         </div>
         {canCreate && <Button size="sm" onClick={openAdd}><Plus className="mr-2 h-4 w-4" /> Add New Log</Button>}
       </div>
@@ -54,12 +68,13 @@ export default function Logbook() {
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Type</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Users</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Time</th>
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Approval</th>
+              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Status</th>
+              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Instructor</th>
               {showActions && <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {isLoading && <tr><td colSpan={showActions ? 8 : 7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
+            {isLoading && <tr><td colSpan={showActions ? 9 : 8} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>}
             {filtered.map((s: any) => (
               <tr key={s.id} className="hover:bg-muted/30">
                 <td className="px-4 py-2 font-mono text-xs">{s.date}</td>
@@ -68,9 +83,8 @@ export default function Logbook() {
                 <td className="px-4 py-2">{s.activity_type}</td>
                 <td className="px-4 py-2 text-center">{s.number_of_users}</td>
                 <td className="px-4 py-2 font-mono text-xs">{s.start_time?.slice(0,5)}–{s.end_time?.slice(0,5) ?? "..."}</td>
-                <td className="px-4 py-2">
-                  <StatusBadge status={s.instructor_confirmed ? "success" : "warning"} label={s.instructor_confirmed ? "Approved" : "Pending"} />
-                </td>
+                <td className="px-4 py-2"><StatusPill status={s.approval_status ?? "draft"} /></td>
+                <td className="px-4 py-2 text-xs">{s.instructor_confirmed ? "✓ confirmed" : "—"}</td>
                 {showActions && (
                   <td className="px-4 py-2 text-right">
                     <RowActions table="lab_sessions" id={s.id} invalidateKey="lab_sessions" canEdit={canEdit} canDelete={canDelete} onEdit={() => openEdit(s)} itemLabel="log entry" />
