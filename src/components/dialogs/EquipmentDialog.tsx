@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useLaboratories } from "@/hooks/useSupabaseQuery";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApprovalFooter, StatusBanner } from "./ApprovalFooter";
 import type { Database } from "@/integrations/supabase/types";
 
 type EquipmentStatus = Database["public"]["Enums"]["equipment_status"];
@@ -40,10 +42,14 @@ const EMPTY = {
 
 export function EquipmentDialog({ open, onOpenChange, editRecord, defaultType = "fixed" }: Props) {
   const queryClient = useQueryClient();
+  const { user, hasPermission } = useAuth();
   const { data: labs } = useLaboratories();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const isEdit = !!editRecord;
+  const status = editRecord?.approval_status ?? "draft";
+  const canApprove = hasPermission("equipment.approve");
+  const isLocked = isEdit && status !== "draft" && status !== "rejected" && !canApprove;
 
   useEffect(() => {
     if (open) {
@@ -72,8 +78,7 @@ export function EquipmentDialog({ open, onOpenChange, editRecord, defaultType = 
 
   const isConsumable = form.equipment_type === "consumable";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const save = async (action: "draft" | "submit") => {
     if (!form.name) return toast.error("Item name is required");
     setLoading(true);
     const payload: any = {
@@ -92,12 +97,20 @@ export function EquipmentDialog({ open, onOpenChange, editRecord, defaultType = 
       next_calibration: form.next_calibration || null,
       remarks: form.remarks || null,
     };
+    if (action === "submit") {
+      payload.approval_status = "submitted";
+      payload.submitted_at = new Date().toISOString();
+      payload.rejection_reason = null;
+    } else {
+      payload.approval_status = "draft";
+    }
+    if (!isEdit) payload.created_by = user?.id;
     const { error } = isEdit
       ? await supabase.from("equipment").update(payload).eq("id", editRecord.id)
       : await supabase.from("equipment").insert(payload);
     setLoading(false);
     if (error) return toast.error(error.message);
-    toast.success(isEdit ? "Item updated" : "Item added");
+    toast.success(action === "submit" ? "Submitted for approval" : isEdit ? "Draft updated" : "Draft saved");
     queryClient.invalidateQueries({ queryKey: ["equipment"] });
     onOpenChange(false);
   };
@@ -106,9 +119,14 @@ export function EquipmentDialog({ open, onOpenChange, editRecord, defaultType = 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Item" : "Add Equipment / Consumable"}</DialogTitle>
+          <DialogTitle>
+            {isEdit ? "Edit Item" : "Add Equipment / Consumable"}
+            {isEdit && <span className="ml-2 text-xs font-mono uppercase text-muted-foreground">[{status}]</span>}
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <StatusBanner status={status} rejection_reason={editRecord?.rejection_reason} />
+        <form onSubmit={(e) => { e.preventDefault(); save("draft"); }} className="space-y-4">
+          <fieldset disabled={isLocked} className="space-y-4 contents">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Type *</Label>
@@ -207,10 +225,14 @@ export function EquipmentDialog({ open, onOpenChange, editRecord, defaultType = 
             <Label>Remarks</Label>
             <Textarea value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} rows={2} />
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Item"}</Button>
-          </div>
+          </fieldset>
+          <ApprovalFooter
+            loading={loading}
+            isLocked={isLocked}
+            onCancel={() => onOpenChange(false)}
+            onSaveDraft={() => save("draft")}
+            onSubmit={() => save("submit")}
+          />
         </form>
       </DialogContent>
     </Dialog>

@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useLaboratories } from "@/hooks/useSupabaseQuery";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApprovalFooter, StatusBanner } from "./ApprovalFooter";
 
 interface Props { open: boolean; onOpenChange: (open: boolean) => void; editRecord?: any | null; }
 
@@ -22,10 +23,14 @@ const EMPTY = {
 
 export function ConsumableDialog({ open, onOpenChange, editRecord }: Props) {
   const queryClient = useQueryClient();
+  const { user, hasPermission } = useAuth();
   const { data: labs } = useLaboratories();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const isEdit = !!editRecord;
+  const status = editRecord?.approval_status ?? "draft";
+  const canApprove = hasPermission("consumables.approve");
+  const isLocked = isEdit && status !== "draft" && status !== "rejected" && !canApprove;
 
   useEffect(() => {
     if (open) {
@@ -44,13 +49,12 @@ export function ConsumableDialog({ open, onOpenChange, editRecord }: Props) {
     }
   }, [open, editRecord]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const save = async (action: "draft" | "submit") => {
     if (!form.name) return toast.error("Material name is required");
     setLoading(true);
     const qr = Number(form.quantity_received);
     const qi = Number(form.quantity_issued);
-    const payload = {
+    const payload: any = {
       name: form.name,
       unit: form.unit,
       quantity_received: qr,
@@ -59,12 +63,20 @@ export function ConsumableDialog({ open, onOpenChange, editRecord }: Props) {
       laboratory_id: form.laboratory_id || null,
       issued_to: form.issued_to || null,
     };
+    if (action === "submit") {
+      payload.approval_status = "submitted";
+      payload.submitted_at = new Date().toISOString();
+      payload.rejection_reason = null;
+    } else {
+      payload.approval_status = "draft";
+    }
+    if (!isEdit) payload.created_by = user?.id;
     const { error } = isEdit
       ? await supabase.from("consumables").update(payload).eq("id", editRecord.id)
       : await supabase.from("consumables").insert(payload);
     setLoading(false);
     if (error) return toast.error(error.message);
-    toast.success(isEdit ? "Consumable updated" : "Consumable added");
+    toast.success(action === "submit" ? "Submitted for approval" : isEdit ? "Draft updated" : "Draft saved");
     queryClient.invalidateQueries({ queryKey: ["consumables"] });
     onOpenChange(false);
   };
@@ -72,41 +84,52 @@ export function ConsumableDialog({ open, onOpenChange, editRecord }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>{isEdit ? "Edit Consumable" : "Add Consumable Material"}</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Material Name *</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? "Edit Consumable" : "Add Consumable Material"}
+            {isEdit && <span className="ml-2 text-xs font-mono uppercase text-muted-foreground">[{status}]</span>}
+          </DialogTitle>
+        </DialogHeader>
+        <StatusBanner status={status} rejection_reason={editRecord?.rejection_reason} />
+        <form onSubmit={(e) => { e.preventDefault(); save("draft"); }} className="space-y-4">
+          <fieldset disabled={isLocked} className="space-y-4 contents">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Material Name *</Label>
+                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Unit</Label>
+                <Input value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))} placeholder="pcs, liters, kg..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Qty Received</Label>
+                <Input type="number" min={0} value={form.quantity_received} onChange={e => setForm(f => ({ ...f, quantity_received: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Qty Issued</Label>
+                <Input type="number" min={0} value={form.quantity_issued} onChange={e => setForm(f => ({ ...f, quantity_issued: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Laboratory</Label>
+                <Select value={form.laboratory_id} onValueChange={v => setForm(f => ({ ...f, laboratory_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select lab" /></SelectTrigger>
+                  <SelectContent>{(labs ?? []).map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Issued To</Label>
+                <Input value={form.issued_to} onChange={e => setForm(f => ({ ...f, issued_to: e.target.value }))} />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Unit</Label>
-              <Input value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))} placeholder="pcs, liters, kg..." />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Qty Received</Label>
-              <Input type="number" min={0} value={form.quantity_received} onChange={e => setForm(f => ({ ...f, quantity_received: Number(e.target.value) }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Qty Issued</Label>
-              <Input type="number" min={0} value={form.quantity_issued} onChange={e => setForm(f => ({ ...f, quantity_issued: Number(e.target.value) }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Laboratory</Label>
-              <Select value={form.laboratory_id} onValueChange={v => setForm(f => ({ ...f, laboratory_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select lab" /></SelectTrigger>
-                <SelectContent>{(labs ?? []).map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Issued To</Label>
-              <Input value={form.issued_to} onChange={e => setForm(f => ({ ...f, issued_to: e.target.value }))} />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Material"}</Button>
-          </div>
+          </fieldset>
+          <ApprovalFooter
+            loading={loading}
+            isLocked={isLocked}
+            onCancel={() => onOpenChange(false)}
+            onSaveDraft={() => save("draft")}
+            onSubmit={() => save("submit")}
+          />
         </form>
       </DialogContent>
     </Dialog>
